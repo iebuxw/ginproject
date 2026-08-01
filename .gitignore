@@ -1,8 +1,8 @@
 *.exe
 server
-dist/
 node_modules/
 .env
 .env.local
+.claude/settings.local.json
 .idea/
 *.log

@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go version *)",
+      "Bash(go mod *)",
+      "Bash(go get *)",
+      "Bash(go build *)",
+      "Bash(npm --version)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(docker --version)",
+      "Bash(docker-compose --version)",
+      "Bash(docker compose *)",
+      "Bash(npx vue-cli-service *)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git reset *)"
+    ]
+  }
+}

@@ -10,12 +10,13 @@ import (
 )
 
 type AuthController struct {
-	authService *service.AuthService
-	menuDAO     *dao.MenuDAO
+	authService      *service.AuthService
+	menuDAO          *dao.MenuDAO
+	loginLogService  *service.LoginLogService
 }
 
-func NewAuthController(authService *service.AuthService, menuDAO *dao.MenuDAO) *AuthController {
-	return &AuthController{authService, menuDAO}
+func NewAuthController(authService *service.AuthService, menuDAO *dao.MenuDAO, loginLogService *service.LoginLogService) *AuthController {
+	return &AuthController{authService, menuDAO, loginLogService}
 }
 
 func (ctl *AuthController) Login(c *gin.Context) {
@@ -29,9 +30,15 @@ func (ctl *AuthController) Login(c *gin.Context) {
 	}
 	token, user, err := ctl.authService.Login(req.Username, req.Password)
 	if err != nil {
+		_ = ctl.loginLogService.Create(&model.LoginLog{
+			Username: req.Username, Status: 0, Message: err.Error(), IP: c.ClientIP(),
+		})
 		utils.Error(c, 401, err.Error())
 		return
 	}
+	_ = ctl.loginLogService.Create(&model.LoginLog{
+		Username: req.Username, Status: 1, IP: c.ClientIP(),
+	})
 	utils.Success(c, gin.H{"token": token, "user": user})
 }
 

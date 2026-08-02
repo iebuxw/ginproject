@@ -35,13 +35,14 @@ func main() {
 	})
 
 	// AutoMigrate
-	db.AutoMigrate(&model.User{}, &model.Role{}, &model.Menu{}, &model.OperationLog{})
+	db.AutoMigrate(&model.User{}, &model.Role{}, &model.Menu{}, &model.OperationLog{}, &model.LoginLog{})
 
 	// DAO
 	userDAO := dao.NewUserDAO(db)
 	roleDAO := dao.NewRoleDAO(db)
 	menuDAO := dao.NewMenuDAO(db)
 	logDAO := dao.NewLogDAO(db)
+	loginLogDAO := dao.NewLoginLogDAO(db)
 
 	// Service
 	authService := service.NewAuthService(userDAO, rdb, cfg)
@@ -49,19 +50,21 @@ func main() {
 	roleService := service.NewRoleService(roleDAO)
 	menuService := service.NewMenuService(menuDAO)
 	logService := service.NewLogService(logDAO)
+	loginLogService := service.NewLoginLogService(loginLogDAO)
 
 	// Controller
-	authCtrl := controller.NewAuthController(authService, menuDAO)
+	authCtrl := controller.NewAuthController(authService, menuDAO, loginLogService)
 	userCtrl := controller.NewUserController(userService)
 	roleCtrl := controller.NewRoleController(roleService)
 	menuCtrl := controller.NewMenuController(menuService)
 	logCtrl := controller.NewLogController(logService)
+	loginLogCtrl := controller.NewLoginLogController(loginLogService)
 
 	// 默认数据初始化
 	seedDefaultData(db)
 
 	// Router
-	r := router.Setup(cfg, authCtrl, userCtrl, roleCtrl, menuCtrl, logCtrl, authService, userDAO, menuDAO, logDAO)
+	r := router.Setup(cfg, authCtrl, userCtrl, roleCtrl, menuCtrl, logCtrl, loginLogCtrl, authService, userDAO, menuDAO, logDAO)
 
 	log.Printf("Server running on :%s", cfg.Server.Port)
 	if err := r.Run(":" + cfg.Server.Port); err != nil {
@@ -84,6 +87,7 @@ func seedDefaultData(db *gorm.DB) {
 		{Name: "角色管理", Icon: "el-icon-s-custom", Path: "/system/role", Type: 2, Sort: 2, Status: 1, ParentID: 1},
 		{Name: "菜单管理", Icon: "el-icon-menu", Path: "/system/menu", Type: 2, Sort: 3, Status: 1, ParentID: 1},
 		{Name: "操作日志", Icon: "el-icon-document", Path: "/system/log", Type: 2, Sort: 4, Status: 1, ParentID: 1},
+		{Name: "登录日志", Icon: "el-icon-document-checked", Path: "/system/login-log", Type: 2, Sort: 5, Status: 1, ParentID: 1},
 		// 用户管理按钮 (ParentID: 2)
 		{Name: "用户列表", Permission: "user:list", Type: 3, Sort: 1, Status: 1, ParentID: 2},
 		{Name: "用户查询", Permission: "user:query", Type: 3, Sort: 2, Status: 1, ParentID: 2},
@@ -104,6 +108,8 @@ func seedDefaultData(db *gorm.DB) {
 		{Name: "菜单删除", Permission: "menu:delete", Type: 3, Sort: 5, Status: 1, ParentID: 4},
 		// 日志管理按钮 (ParentID: 5)
 		{Name: "日志列表", Permission: "log:list", Type: 3, Sort: 1, Status: 1, ParentID: 5},
+		// 登录日志按钮 (ParentID: 6)
+		{Name: "日志列表", Permission: "login-log:list", Type: 3, Sort: 1, Status: 1, ParentID: 6},
 	}
 	for i := range menus {
 		db.Create(&menus[i])

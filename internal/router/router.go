@@ -17,6 +17,7 @@ func Setup(
 	roleCtrl *controller.RoleController,
 	menuCtrl *controller.MenuController,
 	logCtrl *controller.LogController,
+	loginLogCtrl *controller.LoginLogController,
 	authService *service.AuthService,
 	userDAO *dao.UserDAO,
 	menuDAO *dao.MenuDAO,
@@ -72,6 +73,10 @@ func Setup(
 			middleware.RequirePerm("menu:edit"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO), menuCtrl.Update)
 		authorized.DELETE("/menus/:id",
 			middleware.RequirePerm("menu:delete"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO), menuCtrl.Delete)
+
+		// 登录日志
+		authorized.GET("/login-logs",
+			middleware.RequirePerm("login-log:list"), middleware.RBAC(menuDAO), loginLogCtrl.List)
 
 		// 操作日志
 		authorized.GET("/logs",

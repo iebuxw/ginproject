@@ -17,20 +17,34 @@
         <el-table-column prop="id" label="ID" width="60"></el-table-column>
         <el-table-column prop="operator_id" label="操作人ID" width="80"></el-table-column>
         <el-table-column prop="method" label="方式" width="70"></el-table-column>
-        <el-table-column prop="path" label="请求路径"></el-table-column>
+        <el-table-column prop="path" label="请求路径" width="160"></el-table-column>
+        <el-table-column label="参数" min-width="200">
+          <template slot-scope="{row}">
+            <span class="params-preview">{{ row.params || '-' }}</span>
+            <el-button v-if="row.params && row.params.length > 40" type="text" @click="showParams(row.params)">详情</el-button>
+          </template>
+        </el-table-column>
         <el-table-column prop="duration" label="耗时(ms)" width="80"></el-table-column>
         <el-table-column prop="ip" label="IP" width="140"></el-table-column>
         <el-table-column prop="created_at" label="操作时间" width="180"></el-table-column>
       </el-table>
       <el-pagination style="margin-top:15px" @current-change="pageChange" :current-page="page" :page-size="pageSize" :total="total" layout="total,prev,pager,next"></el-pagination>
     </el-card>
+
+    <el-dialog title="请求参数" :visible.sync="dialogVisible" width="600px">
+      <pre class="params-detail">{{ dialogContent }}</pre>
+    </el-dialog>
   </div>
 </template>
 <script>
 import { getLogs } from '@/api/log'
 export default {
   data() {
-    return { list: [], page: 1, pageSize: 10, total: 0, filters: { method: '' } }
+    return {
+      list: [], page: 1, pageSize: 10, total: 0,
+      filters: { method: '' },
+      dialogVisible: false, dialogContent: ''
+    }
   },
   created() { this.fetchData() },
   methods: {
@@ -38,7 +52,27 @@ export default {
       const res = await getLogs({ page: this.page, page_size: this.pageSize, method: this.filters.method })
       this.list = res.data.list; this.total = res.data.total
     },
-    pageChange(p) { this.page = p; this.fetchData() }
+    pageChange(p) { this.page = p; this.fetchData() },
+    showParams(val) {
+      this.dialogContent = val
+      this.dialogVisible = true
+    }
   }
 }
 </script>
+<style scoped>
+.params-preview {
+  display: inline-block;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.params-detail {
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 400px;
+  overflow-y: auto;
+}
+</style>

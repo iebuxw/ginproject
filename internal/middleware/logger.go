@@ -20,6 +20,16 @@ func OperationLogger(logDAO *dao.LogDAO) gin.HandlerFunc {
 			c.Request.Body = io.NopCloser(bytes.NewBuffer(b))
 		}
 		c.Next()
+
+		if c.Request.Method == "GET" {
+			return
+		}
+
+		params := body
+		if params == "" {
+			params = c.Request.URL.Path
+		}
+
 		duration := int(time.Since(start).Milliseconds())
 		userID, _ := c.Get("user_id")
 		uid, _ := userID.(uint)
@@ -27,7 +37,7 @@ func OperationLogger(logDAO *dao.LogDAO) gin.HandlerFunc {
 			OperatorID: uid,
 			Method:     c.Request.Method,
 			Path:       c.Request.URL.Path,
-			Params:     body,
+			Params:     params,
 			Duration:   duration,
 			IP:         c.ClientIP(),
 			CreatedAt:  model.DateTime(time.Now()),

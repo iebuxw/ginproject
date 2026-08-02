@@ -1,7 +1,5 @@
 package model
 
-import "time"
-
 type OperationLog struct {
 	ID         uint      `gorm:"primaryKey" json:"id"`
 	OperatorID uint      `json:"operator_id"`
@@ -13,7 +11,7 @@ type OperationLog struct {
 	Response   string    `gorm:"type:text" json:"response"`
 	Duration   int       `json:"duration"`
 	IP         string    `gorm:"size:45" json:"ip"`
-	CreatedAt  time.Time `json:"created_at"`
+	CreatedAt  DateTime `json:"created_at"`
 }
 
 func (OperationLog) TableName() string { return "operation_logs" }

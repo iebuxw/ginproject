@@ -30,6 +30,7 @@ func OperationLogger(logDAO *dao.LogDAO) gin.HandlerFunc {
 			Params:     body,
 			Duration:   duration,
 			IP:         c.ClientIP(),
+			CreatedAt:  model.DateTime(time.Now()),
 		}
 		_ = logDAO.Create(log)
 	}

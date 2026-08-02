@@ -1,0 +1,85 @@
+package controller
+
+import (
+	"context"
+	"time"
+
+	"ginproject/internal/config"
+	"ginproject/internal/utils"
+	"ginproject/internal/ws"
+
+	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
+)
+
+type WSController struct {
+	hub *ws.Hub
+	rdb *redis.Client
+	cfg *config.Config
+}
+
+func NewWSController(hub *ws.Hub, rdb *redis.Client, cfg *config.Config) *WSController {
+	return &WSController{hub: hub, rdb: rdb, cfg: cfg}
+}
+
+func (ctl *WSController) Handle(c *gin.Context) {
+	token := c.Query("token")
+	if token == "" {
+		c.JSON(401, gin.H{"code": 401, "message": "缺少token"})
+		return
+	}
+
+	_, err := ctl.rdb.Get(context.Background(), "blacklist:"+token).Result()
+	if err == nil {
+		c.JSON(401, gin.H{"code": 401, "message": "Token已失效"})
+		return
+	}
+
+	claims, err := utils.ParseToken(token, ctl.cfg.JWT.Secret)
+	if err != nil {
+		c.JSON(401, gin.H{"code": 401, "message": "Token无效"})
+		return
+	}
+
+	conn, err := ws.Upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		return
+	}
+
+	userID := claims.UserID
+	ctl.hub.Register(userID, conn)
+	defer ctl.hub.Unregister(userID)
+	defer conn.Close()
+
+	stopCh := make(chan struct{})
+
+	go func() {
+		defer close(stopCh)
+		for {
+			if _, _, err := conn.NextReader(); err != nil {
+				break
+			}
+		}
+	}()
+
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
+	conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+	conn.SetPongHandler(func(string) error {
+		conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+		return nil
+	})
+
+	for {
+		select {
+		case <-ticker.C:
+			conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			if err := conn.WriteJSON(ws.Message{Type: "heartbeat"}); err != nil {
+				return
+			}
+		case <-stopCh:
+			return
+		}
+	}
+}

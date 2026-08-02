@@ -8,8 +8,11 @@ import (
 	"ginproject/internal/model"
 	"ginproject/internal/router"
 	"ginproject/internal/service"
+	"ginproject/internal/worker"
+	"ginproject/internal/ws"
 	"log"
 
+	"github.com/rabbitmq/amqp091-go"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/mysql"
@@ -52,19 +55,40 @@ func main() {
 	logService := service.NewLogService(logDAO)
 	loginLogService := service.NewLoginLogService(loginLogDAO)
 
+	// RabbitMQ
+	amqpConn, err := amqp091.Dial(cfg.RabbitMQ.DSN())
+	if err != nil {
+		log.Fatalf("RabbitMQ 连接失败: %v", err)
+	}
+	defer amqpConn.Close()
+
+	publishCh, err := amqpConn.Channel()
+	if err != nil {
+		log.Fatalf("RabbitMQ Channel 创建失败: %v", err)
+	}
+	defer publishCh.Close()
+
+	// WebSocket Hub
+	hub := ws.NewHub()
+	wsCtrl := controller.NewWSController(hub, rdb, cfg)
+
+	// Export Worker
+	exportWorker := worker.NewExportWorker(rdb, amqpConn, logService, hub)
+	go exportWorker.Start()
+
 	// Controller
 	authCtrl := controller.NewAuthController(authService, menuDAO, loginLogService)
 	userCtrl := controller.NewUserController(userService)
 	roleCtrl := controller.NewRoleController(roleService)
 	menuCtrl := controller.NewMenuController(menuService)
-	logCtrl := controller.NewLogController(logService)
+	logCtrl := controller.NewLogController(logService, rdb, publishCh)
 	loginLogCtrl := controller.NewLoginLogController(loginLogService)
 
 	// 默认数据初始化
 	seedDefaultData(db)
 
 	// Router
-	r := router.Setup(cfg, authCtrl, userCtrl, roleCtrl, menuCtrl, logCtrl, loginLogCtrl, authService, userDAO, menuDAO, logDAO)
+	r := router.Setup(cfg, authCtrl, userCtrl, roleCtrl, menuCtrl, logCtrl, loginLogCtrl, wsCtrl, authService, userDAO, menuDAO, logDAO)
 
 	log.Printf("Server running on :%s", cfg.Server.Port)
 	if err := r.Run(":" + cfg.Server.Port); err != nil {
@@ -110,6 +134,7 @@ func seedDefaultData(db *gorm.DB) {
 		{Name: "菜单删除", Permission: "menu:delete", Type: 3, Sort: 5, Status: 1, ParentID: 4},
 		// 操作日志按钮 (ParentID: 6)
 		{Name: "日志列表", Permission: "log:list", Type: 3, Sort: 1, Status: 1, ParentID: 6},
+		{Name: "日志导出", Permission: "log:export", Type: 3, Sort: 2, Status: 1, ParentID: 6},
 		// 登录日志按钮 (ParentID: 7)
 		{Name: "日志列表", Permission: "login-log:list", Type: 3, Sort: 1, Status: 1, ParentID: 7},
 	}

@@ -18,6 +18,7 @@ func Setup(
 	menuCtrl *controller.MenuController,
 	logCtrl *controller.LogController,
 	loginLogCtrl *controller.LoginLogController,
+	wsCtrl *controller.WSController,
 	authService *service.AuthService,
 	userDAO *dao.UserDAO,
 	menuDAO *dao.MenuDAO,
@@ -82,7 +83,16 @@ func Setup(
 		// 操作日志
 		authorized.GET("/logs",
 			middleware.RequirePerm("log:list"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO), logCtrl.List)
+		authorized.POST("/logs/export",
+			middleware.RequirePerm("log:export"), middleware.RBAC(menuDAO), logCtrl.Export)
+		authorized.GET("/logs/export-status",
+			middleware.RequirePerm("log:export"), middleware.RBAC(menuDAO), logCtrl.ExportStatus)
+		authorized.GET("/logs/download/:taskID",
+			middleware.RequirePerm("log:export"), middleware.RBAC(menuDAO), logCtrl.Download)
 	}
+
+	// WebSocket
+	r.GET("/api/ws", wsCtrl.Handle)
 
 	return r
 }

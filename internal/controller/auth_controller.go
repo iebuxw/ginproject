@@ -5,6 +5,7 @@ import (
 	"ginproject/internal/model"
 	"ginproject/internal/service"
 	"ginproject/internal/utils"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -31,13 +32,13 @@ func (ctl *AuthController) Login(c *gin.Context) {
 	token, user, err := ctl.authService.Login(req.Username, req.Password)
 	if err != nil {
 		_ = ctl.loginLogService.Create(&model.LoginLog{
-			Username: req.Username, Status: 0, Message: err.Error(), IP: c.ClientIP(),
+			Username: req.Username, Status: 0, Message: err.Error(), IP: c.ClientIP(), CreatedAt: model.DateTime(time.Now()),
 		})
 		utils.Error(c, 401, err.Error())
 		return
 	}
 	_ = ctl.loginLogService.Create(&model.LoginLog{
-		Username: req.Username, Status: 1, IP: c.ClientIP(),
+		Username: req.Username, Status: 1, IP: c.ClientIP(), CreatedAt: model.DateTime(time.Now()),
 	})
 	utils.Success(c, gin.H{"token": token, "user": user})
 }

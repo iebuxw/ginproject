@@ -52,7 +52,7 @@
   </div>
 </template>
 <script>
-import { getLogs, exportLogs, getExportStatus } from '@/api/log'
+import { getLogs, exportLogs } from '@/api/log'
 import { onWSMessage, offWSMessage } from '@/utils/ws'
 export default {
   data() {
@@ -76,7 +76,6 @@ export default {
   beforeDestroy() {
     offWSMessage('export_complete', this._onComplete)
     offWSMessage('export_failed', this._onFailed)
-    if (this._pollTimer) clearInterval(this._pollTimer)
   },
   methods: {
     async fetchData() {
@@ -93,21 +92,6 @@ export default {
       this.downloadUrl = null
       exportLogs({ method: this.filters.method }).then(res => {
         this.currentTaskId = res.data.task_id
-        this._pollTimer = setInterval(() => {
-          if (!this.currentTaskId) { clearInterval(this._pollTimer); return }
-          getExportStatus(this.currentTaskId).then(r => {
-            const d = r.data
-            if (d.status === 'success') {
-              this.onExportComplete({
-                task_id: this.currentTaskId,
-                filename: d.filename,
-                download_url: '/api/logs/download/' + this.currentTaskId
-              })
-            } else if (d.status === 'failed') {
-              this.onExportFailed({ task_id: this.currentTaskId, error: d.error || '导出失败' })
-            }
-          }).catch(() => {})
-        }, 2000)
       }).catch(() => {
         this.exporting = false
         this.$message.error('导出请求失败')
@@ -116,14 +100,12 @@ export default {
     onExportComplete(msg) {
       if (msg.task_id !== this.currentTaskId) return
       this.exporting = false
-      clearInterval(this._pollTimer)
       this.downloadUrl = msg.download_url
       this.downloadFilename = msg.filename
     },
     onExportFailed(msg) {
       if (msg.task_id !== this.currentTaskId) return
       this.exporting = false
-      clearInterval(this._pollTimer)
       this.$message.error(msg.error || '导出失败')
     },
   }

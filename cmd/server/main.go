@@ -81,13 +81,15 @@ func seedDefaultData(db *gorm.DB) {
 
 	// 创建菜单（先父后子，利用自动 ID 递增）
 	menus := []model.Menu{
-		// 父级菜单
+		// 系统管理 (ID: 1)
 		{Name: "系统管理", Icon: "el-icon-setting", Path: "/system", Type: 1, Sort: 1, Status: 1},
 		{Name: "用户管理", Icon: "el-icon-user", Path: "/system/user", Type: 2, Sort: 1, Status: 1, ParentID: 1},
 		{Name: "角色管理", Icon: "el-icon-s-custom", Path: "/system/role", Type: 2, Sort: 2, Status: 1, ParentID: 1},
 		{Name: "菜单管理", Icon: "el-icon-menu", Path: "/system/menu", Type: 2, Sort: 3, Status: 1, ParentID: 1},
-		{Name: "操作日志", Icon: "el-icon-document", Path: "/system/log", Type: 2, Sort: 4, Status: 1, ParentID: 1},
-		{Name: "登录日志", Icon: "el-icon-document-checked", Path: "/system/login-log", Type: 2, Sort: 5, Status: 1, ParentID: 1},
+		// 日志管理 (ID: 5)
+		{Name: "日志管理", Icon: "el-icon-document", Path: "/system/log-mgr", Type: 1, Sort: 2, Status: 1},
+		{Name: "操作日志", Icon: "el-icon-document", Path: "/system/log", Type: 2, Sort: 1, Status: 1, ParentID: 5},
+		{Name: "登录日志", Icon: "el-icon-document-checked", Path: "/system/login-log", Type: 2, Sort: 2, Status: 1, ParentID: 5},
 		// 用户管理按钮 (ParentID: 2)
 		{Name: "用户列表", Permission: "user:list", Type: 3, Sort: 1, Status: 1, ParentID: 2},
 		{Name: "用户查询", Permission: "user:query", Type: 3, Sort: 2, Status: 1, ParentID: 2},
@@ -106,10 +108,10 @@ func seedDefaultData(db *gorm.DB) {
 		{Name: "菜单新增", Permission: "menu:add", Type: 3, Sort: 3, Status: 1, ParentID: 4},
 		{Name: "菜单编辑", Permission: "menu:edit", Type: 3, Sort: 4, Status: 1, ParentID: 4},
 		{Name: "菜单删除", Permission: "menu:delete", Type: 3, Sort: 5, Status: 1, ParentID: 4},
-		// 日志管理按钮 (ParentID: 5)
-		{Name: "日志列表", Permission: "log:list", Type: 3, Sort: 1, Status: 1, ParentID: 5},
-		// 登录日志按钮 (ParentID: 6)
-		{Name: "日志列表", Permission: "login-log:list", Type: 3, Sort: 1, Status: 1, ParentID: 6},
+		// 操作日志按钮 (ParentID: 6)
+		{Name: "日志列表", Permission: "log:list", Type: 3, Sort: 1, Status: 1, ParentID: 6},
+		// 登录日志按钮 (ParentID: 7)
+		{Name: "日志列表", Permission: "login-log:list", Type: 3, Sort: 1, Status: 1, ParentID: 7},
 	}
 	for i := range menus {
 		db.Create(&menus[i])

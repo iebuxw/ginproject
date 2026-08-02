@@ -51,6 +51,24 @@ func (ctl *AuthController) Logout(c *gin.Context) {
 	utils.Success(c, nil)
 }
 
+func (ctl *AuthController) ChangePassword(c *gin.Context) {
+	var req struct {
+		OldPassword string `json:"old_password" binding:"required"`
+		NewPassword string `json:"new_password" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.Error(c, 400, "参数错误")
+		return
+	}
+	userID, _ := c.Get("user_id")
+	uid, _ := userID.(uint)
+	if err := ctl.authService.ChangePassword(uid, req.OldPassword, req.NewPassword); err != nil {
+		utils.Error(c, 400, err.Error())
+		return
+	}
+	utils.Success(c, nil)
+}
+
 func (ctl *AuthController) UserInfo(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	username, _ := c.Get("username")

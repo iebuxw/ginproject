@@ -36,6 +36,7 @@ func Setup(
 	authorized.Use(middleware.JWTAuth(cfg, authService, userDAO))
 	{
 		authorized.POST("/auth/logout", authCtrl.Logout)
+		authorized.POST("/auth/change-password", authCtrl.ChangePassword)
 		authorized.GET("/auth/userinfo", authCtrl.UserInfo)
 
 		// 用户管理

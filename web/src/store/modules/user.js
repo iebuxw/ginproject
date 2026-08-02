@@ -1,4 +1,4 @@
-import { login, logout, getUserInfo } from '@/api/auth'
+import { login, logout, getUserInfo, changePassword } from '@/api/auth'
 
 const state = {
   token: localStorage.getItem('token') || '',
@@ -21,6 +21,9 @@ const actions = {
     const res = await getUserInfo()
     commit('SET_USER_INFO', res.data)
     return res.data
+  },
+  async changePassword(_, data) {
+    await changePassword(data)
   },
   async logout({ commit }) {
     await logout()

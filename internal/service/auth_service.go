@@ -61,6 +61,22 @@ func (s *AuthService) Logout(token string) error {
 	return nil
 }
 
+func (s *AuthService) ChangePassword(userID uint, oldPassword, newPassword string) error {
+	user, err := s.userDAO.FindByID(userID)
+	if err != nil {
+		return errors.New("用户不存在")
+	}
+	if !utils.CheckPassword(oldPassword, user.Password) {
+		return errors.New("原密码错误")
+	}
+	hashed, err := utils.HashPassword(newPassword)
+	if err != nil {
+		return err
+	}
+	user.Password = hashed
+	return s.userDAO.Update(user)
+}
+
 func (s *AuthService) IsBlacklisted(token string) bool {
 	key := fmt.Sprintf("blacklist:%s", token)
 	_, err := s.rdb.Get(context.Background(), key).Result()

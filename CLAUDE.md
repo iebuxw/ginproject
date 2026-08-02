@@ -91,4 +91,5 @@ User ──N:M── Role ──N:M── Menu
 - 用户管理 CRUD 不支持分配角色
 - `.env` 和 `web/dist/` 被 gitignore，Docker 在构建阶段自行编译前端
 - `DateTime` 类型不会触发 GORM 自动时间戳，需手动设置 `CreatedAt`
+- 手动操作 MySQL 插入中文时需加 `--default-character-set=utf8mb4`，否则乱码
 - UI 文案全部中文

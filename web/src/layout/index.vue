@@ -60,6 +60,7 @@
 
 <script>
 import { mapState } from 'vuex'
+import { connectWS, disconnectWS } from '@/utils/ws'
 export default {
   data() {
     return {
@@ -71,6 +72,11 @@ export default {
   computed: { ...mapState('user', ['userInfo']) },
   created() {
     this.menus = this.$store.state.permission.menus
+    const token = this.$store.state.user.token
+    if (token) connectWS(token)
+  },
+  beforeDestroy() {
+    disconnectWS()
   },
   methods: {
     hasVisibleChildren(item) {
@@ -80,6 +86,7 @@ export default {
       if (cmd === 'changePassword') {
         this.pwdDialogVisible = true
       } else if (cmd === 'logout') {
+        disconnectWS()
         await this.$store.dispatch('user/logout')
         this.$router.push('/login')
       }

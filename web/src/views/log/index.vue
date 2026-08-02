@@ -12,7 +12,22 @@
           </el-select>
         </el-form-item>
         <el-form-item><el-button @click="fetchData">查询</el-button></el-form-item>
+        <el-form-item>
+          <el-button type="primary" :disabled="exporting" @click="exportExcel">
+            {{ exporting ? '导出中...' : '导出Excel' }}
+          </el-button>
+        </el-form-item>
       </el-form>
+      <el-alert
+        v-if="downloadUrl"
+        title="导出完成"
+        type="success"
+        :closable="true"
+        @close="downloadUrl = null"
+        style="margin-bottom:15px"
+      >
+        <a :href="downloadUrl">{{ downloadFilename || '点击下载' }}</a>
+      </el-alert>
       <el-table :data="list" border>
         <el-table-column prop="id" label="ID" width="60"></el-table-column>
         <el-table-column prop="operator_id" label="操作人ID" width="80"></el-table-column>
@@ -37,16 +52,32 @@
   </div>
 </template>
 <script>
-import { getLogs } from '@/api/log'
+import { getLogs, exportLogs, getExportStatus } from '@/api/log'
+import { onWSMessage, offWSMessage } from '@/utils/ws'
 export default {
   data() {
     return {
       list: [], page: 1, pageSize: 10, total: 0,
       filters: { method: '' },
-      dialogVisible: false, dialogContent: ''
+      dialogVisible: false, dialogContent: '',
+      exporting: false,
+      currentTaskId: null,
+      downloadUrl: null,
+      downloadFilename: null,
     }
   },
   created() { this.fetchData() },
+  mounted() {
+    this._onComplete = this.onExportComplete.bind(this)
+    this._onFailed = this.onExportFailed.bind(this)
+    onWSMessage('export_complete', this._onComplete)
+    onWSMessage('export_failed', this._onFailed)
+  },
+  beforeDestroy() {
+    offWSMessage('export_complete', this._onComplete)
+    offWSMessage('export_failed', this._onFailed)
+    if (this._pollTimer) clearInterval(this._pollTimer)
+  },
   methods: {
     async fetchData() {
       const res = await getLogs({ page: this.page, page_size: this.pageSize, method: this.filters.method })
@@ -56,7 +87,45 @@ export default {
     showParams(val) {
       this.dialogContent = val
       this.dialogVisible = true
-    }
+    },
+    exportExcel() {
+      this.exporting = true
+      this.downloadUrl = null
+      exportLogs({ method: this.filters.method }).then(res => {
+        this.currentTaskId = res.data.task_id
+        this._pollTimer = setInterval(() => {
+          if (!this.currentTaskId) { clearInterval(this._pollTimer); return }
+          getExportStatus(this.currentTaskId).then(r => {
+            const d = r.data
+            if (d.status === 'success') {
+              this.onExportComplete({
+                task_id: this.currentTaskId,
+                filename: d.filename,
+                download_url: '/api/logs/download/' + this.currentTaskId
+              })
+            } else if (d.status === 'failed') {
+              this.onExportFailed({ task_id: this.currentTaskId, error: d.error || '导出失败' })
+            }
+          }).catch(() => {})
+        }, 2000)
+      }).catch(() => {
+        this.exporting = false
+        this.$message.error('导出请求失败')
+      })
+    },
+    onExportComplete(msg) {
+      if (msg.task_id !== this.currentTaskId) return
+      this.exporting = false
+      clearInterval(this._pollTimer)
+      this.downloadUrl = msg.download_url
+      this.downloadFilename = msg.filename
+    },
+    onExportFailed(msg) {
+      if (msg.task_id !== this.currentTaskId) return
+      this.exporting = false
+      clearInterval(this._pollTimer)
+      this.$message.error(msg.error || '导出失败')
+    },
   }
 }
 </script>

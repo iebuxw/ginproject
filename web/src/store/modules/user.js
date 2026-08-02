@@ -1,4 +1,5 @@
 import { login, logout, getUserInfo, changePassword } from '@/api/auth'
+import { connectWS } from '@/utils/ws'
 
 const state = {
   token: localStorage.getItem('token') || '',
@@ -16,6 +17,7 @@ const actions = {
     const res = await login(data)
     commit('SET_TOKEN', res.data.token)
     commit('SET_USER_INFO', res.data.user)
+    connectWS(res.data.token)
     return res
   },
   async getUserInfo({ commit }) {

@@ -38,12 +38,15 @@ func (ctl *UserController) Get(c *gin.Context) {
 }
 
 func (ctl *UserController) Create(c *gin.Context) {
-	var u model.User
-	if err := c.ShouldBindJSON(&u); err != nil {
+	var req struct {
+		model.User
+		RoleIDs []uint `json:"role_ids"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.Error(c, 400, "参数错误")
 		return
 	}
-	if err := ctl.userService.Create(&u); err != nil {
+	if err := ctl.userService.Create(&req.User, req.RoleIDs); err != nil {
 		utils.Error(c, 500, err.Error())
 		return
 	}
@@ -52,13 +55,16 @@ func (ctl *UserController) Create(c *gin.Context) {
 
 func (ctl *UserController) Update(c *gin.Context) {
 	id, _ := strconv.ParseUint(c.Param("id"), 10, 64)
-	var u model.User
-	if err := c.ShouldBindJSON(&u); err != nil {
+	var req struct {
+		model.User
+		RoleIDs []uint `json:"role_ids"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.Error(c, 400, "参数错误")
 		return
 	}
-	u.ID = uint(id)
-	if err := ctl.userService.Update(&u); err != nil {
+	req.User.ID = uint(id)
+	if err := ctl.userService.Update(&req.User, req.RoleIDs); err != nil {
 		utils.Error(c, 500, err.Error())
 		return
 	}

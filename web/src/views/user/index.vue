@@ -36,6 +36,11 @@
         <el-form-item label="邮箱"><el-input v-model="form.email"></el-input></el-form-item>
         <el-form-item label="手机号"><el-input v-model="form.phone"></el-input></el-form-item>
         <el-form-item label="状态"><el-switch v-model="form.status" :active-value="1" :inactive-value="0"></el-switch></el-form-item>
+        <el-form-item label="角色">
+          <el-checkbox-group v-model="form.role_ids">
+            <el-checkbox v-for="r in allRoles" :key="r.id" :label="r.id">{{ r.name }}</el-checkbox>
+          </el-checkbox-group>
+        </el-form-item>
       </el-form>
       <span slot="footer"><el-button @click="dialogVisible = false">取消</el-button><el-button type="primary" @click="handleSubmit">确定</el-button></span>
     </el-dialog>
@@ -43,24 +48,35 @@
 </template>
 <script>
 import { getUsers, addUser, updateUser, deleteUser } from '@/api/user'
+import { getRoles } from '@/api/role'
 export default {
   data() {
     return {
       list: [], page: 1, pageSize: 10, total: 0, keyword: '',
       dialogVisible: false, isEdit: false,
-      form: { username: '', password: '', email: '', phone: '', status: 1 }
+      form: { username: '', password: '', email: '', phone: '', status: 1, role_ids: [] },
+      allRoles: []
     }
   },
-  created() { this.fetchData() },
+  created() { this.fetchData(); this.fetchRoles() },
   methods: {
     async fetchData() {
       const res = await getUsers({ page: this.page, page_size: this.pageSize, keyword: this.keyword })
       this.list = res.data.list; this.total = res.data.total
     },
+    async fetchRoles() {
+      const res = await getRoles({ page_size: 100 })
+      this.allRoles = res.data.list
+    },
     pageChange(p) { this.page = p; this.fetchData() },
     openDialog(row) {
-      if (row) { this.isEdit = true; this.form = { ...row, password: '' } }
-      else { this.isEdit = false; this.form = { username: '', password: '', email: '', phone: '', status: 1 } }
+      if (row) {
+        this.isEdit = true
+        this.form = { ...row, password: '', role_ids: (row.roles || []).map(r => r.id) }
+      } else {
+        this.isEdit = false
+        this.form = { username: '', password: '', email: '', phone: '', status: 1, role_ids: [] }
+      }
       this.dialogVisible = true
     },
     async handleSubmit() {

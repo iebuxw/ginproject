@@ -15,7 +15,12 @@ func (d *UserDAO) Create(u *model.User) error {
 }
 
 func (d *UserDAO) Update(u *model.User) error {
-	return d.db.Omit("created_at").Save(u).Error
+	return d.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(u).Association("Roles").Replace(u.Roles); err != nil {
+			return err
+		}
+		return tx.Omit("created_at").Save(u).Error
+	})
 }
 
 func (d *UserDAO) Delete(id uint) error {

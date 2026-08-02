@@ -10,16 +10,17 @@ type UserService struct{ userDAO *dao.UserDAO }
 
 func NewUserService(userDAO *dao.UserDAO) *UserService { return &UserService{userDAO} }
 
-func (s *UserService) Create(u *model.User) error {
+func (s *UserService) Create(u *model.User, roleIDs []uint) error {
 	hashed, err := utils.HashPassword(u.Password)
 	if err != nil {
 		return err
 	}
 	u.Password = hashed
+	u.Roles = buildRoles(roleIDs)
 	return s.userDAO.Create(u)
 }
 
-func (s *UserService) Update(u *model.User) error {
+func (s *UserService) Update(u *model.User, roleIDs []uint) error {
 	if u.Password != "" {
 		hashed, err := utils.HashPassword(u.Password)
 		if err != nil {
@@ -27,7 +28,16 @@ func (s *UserService) Update(u *model.User) error {
 		}
 		u.Password = hashed
 	}
+	u.Roles = buildRoles(roleIDs)
 	return s.userDAO.Update(u)
+}
+
+func buildRoles(ids []uint) []model.Role {
+	roles := make([]model.Role, len(ids))
+	for i, id := range ids {
+		roles[i] = model.Role{ID: id}
+	}
+	return roles
 }
 
 func (s *UserService) Delete(id uint) error { return s.userDAO.Delete(id) }

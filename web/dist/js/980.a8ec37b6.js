@@ -1,2 +1,0 @@
-"use strict";(self["webpackChunkgin_admin_web"]=self["webpackChunkgin_admin_web"]||[]).push([[980],{5599(n,t,e){e.r(t),e.d(t,{default:()=>c});var a=function(){var n=this;n._self._c;return n._m(0)},i=[function(){var n=this,t=n._self._c;return t("div",[t("h2",[n._v("欢迎使用 GinAdmin 后台管理系统")]),t("p",{staticStyle:{color:"#999","margin-top":"10px"}},[n._v("请通过左侧菜单选择功能模块")])])}];const r={name:"Dashboard"},s=r;var l=e(1656),u=(0,l.A)(s,a,i,!1,null,null,null);const c=u.exports}}]);
-//# sourceMappingURL=980.a8ec37b6.js.map

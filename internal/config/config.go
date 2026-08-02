@@ -1,12 +1,17 @@
 package config
 
-import "github.com/spf13/viper"
+import (
+	"fmt"
+
+	"github.com/spf13/viper"
+)
 
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
 	Redis    RedisConfig
 	JWT      JWTConfig
+	RabbitMQ RabbitMQConfig
 }
 
 type ServerConfig struct{ Port string }
@@ -25,6 +30,16 @@ type RedisConfig struct {
 type JWTConfig struct {
 	Secret      string
 	ExpireHours int
+}
+type RabbitMQConfig struct {
+	Host     string
+	Port     string
+	User     string
+	Password string
+}
+
+func (c RabbitMQConfig) DSN() string {
+	return fmt.Sprintf("amqp://%s:%s@%s:%s/", c.User, c.Password, c.Host, c.Port)
 }
 
 func Load() *Config {
@@ -52,6 +67,12 @@ func Load() *Config {
 		JWT: JWTConfig{
 			Secret:      viper.GetString("JWT_SECRET"),
 			ExpireHours: viper.GetInt("JWT_EXPIRE_HOURS"),
+		},
+		RabbitMQ: RabbitMQConfig{
+			Host:     viper.GetString("RABBITMQ_HOST"),
+			Port:     viper.GetString("RABBITMQ_PORT"),
+			User:     viper.GetString("RABBITMQ_USER"),
+			Password: viper.GetString("RABBITMQ_PASSWORD"),
 		},
 	}
 }

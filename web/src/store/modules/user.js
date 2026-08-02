@@ -15,6 +15,7 @@ const actions = {
   async login({ commit }, data) {
     const res = await login(data)
     commit('SET_TOKEN', res.data.token)
+    commit('SET_USER_INFO', res.data.user)
     return res
   },
   async getUserInfo({ commit }) {

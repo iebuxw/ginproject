@@ -90,6 +90,9 @@ User ──N:M── Role ──N:M── Menu
 - `OperationLog.Module` / `Action` 字段中间件未填充，当前始终为空
 - 用户管理 CRUD 不支持分配角色
 - `.env` 和 `web/dist/` 被 gitignore，Docker 在构建阶段自行编译前端
+- Redis 是 `redis:3.2-alpine`，**不支持 HSET 多字段**（4.0+ 才支持），多字段需拆成单字段调用
+- RabbitMQ 是 `rabbitmq:3-management`，通过 `amqp091-go` 连接
+- WebSocket 走 `gorilla/websocket`，nginx 需配置 `proxy_set_header Upgrade $http_upgrade` 转发 WebSocket 升级头
 - `DateTime` 类型不会触发 GORM 自动时间戳，需手动设置 `CreatedAt`
 - 手动操作 MySQL 插入中文时需加 `--default-character-set=utf8mb4`，否则乱码
 - UI 文案全部中文

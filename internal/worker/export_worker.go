@@ -123,22 +123,17 @@ func (w *ExportWorker) buildExcel(method, filePath string) error {
 	sheet := "操作日志"
 	f.SetSheetName("Sheet1", sheet)
 
-	headers := []string{"ID", "操作人ID", "请求方式", "请求路径", "参数", "耗时(ms)", "IP", "操作时间"}
-	for i, h := range headers {
-		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
-		f.SetCellValue(sheet, cell, h)
-	}
-
-	headerStyle, _ := f.NewStyle(&excelize.Style{
-		Font: &excelize.Font{Bold: true},
-		Fill: excelize.Fill{Type: "pattern", Color: []string{"#E0E0E0"}, Pattern: 1},
-	})
-	f.SetCellStyle(sheet, "A1", fmt.Sprintf("%c1", 'A'+len(headers)-1), headerStyle)
-
 	sw, err := f.NewStreamWriter(sheet)
 	if err != nil {
 		return err
 	}
+
+	headers := []string{"ID", "操作人ID", "请求方式", "请求路径", "参数", "耗时(ms)", "IP", "操作时间"}
+	headerVals := make([]interface{}, len(headers))
+	for i, h := range headers {
+		headerVals[i] = h
+	}
+	sw.SetRow("A1", headerVals)
 
 	offset := 0
 	row := 2
@@ -178,6 +173,12 @@ func (w *ExportWorker) buildExcel(method, filePath string) error {
 	if err := sw.Flush(); err != nil {
 		return err
 	}
+
+	headerStyle, _ := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Bold: true},
+		Fill: excelize.Fill{Type: "pattern", Color: []string{"#E0E0E0"}, Pattern: 1},
+	})
+	f.SetCellStyle(sheet, "A1", fmt.Sprintf("%c1", 'A'+len(headers)-1), headerStyle)
 
 	return f.SaveAs(filePath)
 }

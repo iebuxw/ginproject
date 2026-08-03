@@ -26,7 +26,7 @@
         @close="downloadUrl = null"
         style="margin-bottom:15px"
       >
-        <a :href="downloadUrl">{{ downloadFilename || '点击下载' }}</a>
+        <a href="#" @click.prevent="downloadFile">{{ downloadFilename || '点击下载' }}</a>
       </el-alert>
       <el-table :data="list" border>
         <el-table-column prop="id" label="ID" width="60"></el-table-column>
@@ -52,6 +52,7 @@
   </div>
 </template>
 <script>
+import axios from 'axios'
 import { getLogs, exportLogs } from '@/api/log'
 import { onWSMessage, offWSMessage } from '@/utils/ws'
 export default {
@@ -107,6 +108,24 @@ export default {
       if (msg.task_id !== this.currentTaskId) return
       this.exporting = false
       this.$message.error(msg.error || '导出失败')
+    },
+    downloadFile() {
+      const token = this.$store.state.user.token
+      axios.get(this.downloadUrl, {
+        responseType: 'blob',
+        headers: { Authorization: 'Bearer ' + token }
+      }).then(res => {
+        const url = window.URL.createObjectURL(new Blob([res.data]))
+        const link = document.createElement('a')
+        link.href = url
+        link.download = this.downloadFilename || 'export.xlsx'
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        window.URL.revokeObjectURL(url)
+      }).catch(() => {
+        this.$message.error('下载失败')
+      })
     },
   }
 }

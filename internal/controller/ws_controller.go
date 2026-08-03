@@ -53,23 +53,20 @@ func (ctl *WSController) Handle(c *gin.Context) {
 
 	stopCh := make(chan struct{})
 
+	// 读协程：每次读之前刷新 deadline，客户端任何消息都能续期
 	go func() {
 		defer close(stopCh)
 		for {
+			conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 			if _, _, err := conn.NextReader(); err != nil {
 				break
 			}
 		}
 	}()
 
+	// 心跳
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
-
-	conn.SetReadDeadline(time.Now().Add(60 * time.Second))
-	conn.SetPongHandler(func(string) error {
-		conn.SetReadDeadline(time.Now().Add(60 * time.Second))
-		return nil
-	})
 
 	for {
 		select {

@@ -45,17 +45,15 @@ func (ctl *LogController) Export(c *gin.Context) {
 		Method string `json:"method"`
 	}
 	c.ShouldBindJSON(&req)
-	userID, _ := c.Get("user_id")
+	uid := c.GetUint("user_id")
 
 	taskID := utils.NewUUID()
 	taskKey := "excel:task:" + taskID
 
 	ctx := context.Background()
-	ctl.rdb.HSet(ctx, taskKey,
-		"status", "pending",
-		"user_id", fmt.Sprintf("%d", userID),
-		"method", req.Method,
-	)
+	ctl.rdb.HSet(ctx, taskKey, "status", "pending")
+	ctl.rdb.HSet(ctx, taskKey, "user_id", fmt.Sprintf("%d", uid))
+	ctl.rdb.HSet(ctx, taskKey, "method", req.Method)
 	ctl.rdb.Expire(ctx, taskKey, 24*time.Hour)
 
 	body, _ := json.Marshal(map[string]string{"task_id": taskID})
@@ -85,9 +83,9 @@ func (ctl *LogController) Download(c *gin.Context) {
 	taskID := c.Param("taskID")
 	taskKey := "excel:task:" + taskID
 
-	userID, _ := c.Get("user_id")
+	uid := c.GetUint("user_id")
 	taskUserID, err := ctl.rdb.HGet(context.Background(), taskKey, "user_id").Result()
-	if err != nil || taskUserID != fmt.Sprintf("%d", userID) {
+	if err != nil || taskUserID != fmt.Sprintf("%d", uid) {
 		utils.Error(c, 403, "无权下载或任务不存在")
 		return
 	}

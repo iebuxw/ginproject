@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -60,9 +61,11 @@ func (w *ExportWorker) Start() {
 		panic("RabbitMQ 消费注册失败: " + err.Error())
 	}
 
+	log.Println("Worker 启动成功，等待任务...")
 	for msg := range msgs {
 		var qm queueMessage
 		if json.Unmarshal(msg.Body, &qm) == nil {
+			log.Printf("收到导出任务: %s", qm.TaskID)
 			w.processTask(qm.TaskID)
 		}
 		msg.Ack(false)
@@ -76,8 +79,8 @@ func (w *ExportWorker) processTask(taskID string) {
 	w.rdb.HSet(ctx, taskKey, "status", "processing")
 
 	userIDStr, _ := w.rdb.HGet(ctx, taskKey, "user_id").Result()
-	module, _ := w.rdb.HGet(ctx, taskKey, "module").Result()
 	method, _ := w.rdb.HGet(ctx, taskKey, "method").Result()
+	log.Printf("任务 %s: user_id=%s, method=%s", taskID, userIDStr, method)
 
 	var uid uint
 	fmt.Sscanf(userIDStr, "%d", &uid)
@@ -85,9 +88,12 @@ func (w *ExportWorker) processTask(taskID string) {
 	filename := fmt.Sprintf("操作日志_%s.xlsx", time.Now().Format("20060102_150405"))
 	filePath := filepath.Join(exportDir, taskID+".xlsx")
 
-	err := w.buildExcel(module, method, filePath)
+	log.Printf("任务 %s: 开始生成 Excel...", taskID)
+	err := w.buildExcel(method, filePath)
 	if err != nil {
-		w.rdb.HSet(ctx, taskKey, "status", "failed", "error", err.Error())
+		log.Printf("任务 %s: 生成失败: %v", taskID, err)
+		w.rdb.HSet(ctx, taskKey, "status", "failed")
+		w.rdb.HSet(ctx, taskKey, "error", err.Error())
 		w.hub.Send(uid, ws.Message{
 			Type:  "export_failed",
 			TaskID: taskID,
@@ -96,21 +102,21 @@ func (w *ExportWorker) processTask(taskID string) {
 		return
 	}
 
-	w.rdb.HSet(ctx, taskKey,
-		"status", "success",
-		"filename", filename,
-	)
+	log.Printf("任务 %s: Excel 生成完成, 文件名=%s", taskID, filename)
+	w.rdb.HSet(ctx, taskKey, "status", "success")
+	w.rdb.HSet(ctx, taskKey, "filename", filename)
 	w.rdb.Expire(ctx, taskKey, taskTTL)
 
-	w.hub.Send(uid, ws.Message{
+	err = w.hub.Send(uid, ws.Message{
 		Type:        "export_complete",
 		TaskID:      taskID,
 		Filename:    filename,
 		DownloadURL: "/api/logs/download/" + taskID,
 	})
+	log.Printf("任务 %s: 通知已发送, err=%v", taskID, err)
 }
 
-func (w *ExportWorker) buildExcel(module, method, filePath string) error {
+func (w *ExportWorker) buildExcel(method, filePath string) error {
 	f := excelize.NewFile()
 	defer f.Close()
 
@@ -136,9 +142,10 @@ func (w *ExportWorker) buildExcel(module, method, filePath string) error {
 
 	offset := 0
 	row := 2
+	totalRows := 0
 
 	for {
-		logs, err := w.logService.FindBatch(module, method, offset, batchSize)
+		logs, err := w.logService.FindBatch("", method, offset, batchSize)
 		if err != nil {
 			return err
 		}
@@ -159,11 +166,14 @@ func (w *ExportWorker) buildExcel(module, method, filePath string) error {
 			row++
 		}
 
+		totalRows += len(logs)
 		offset += batchSize
 		if len(logs) < batchSize {
 			break
 		}
 	}
+
+	log.Printf("buildExcel: 共写入 %d 行数据", totalRows)
 
 	if err := sw.Flush(); err != nil {
 		return err

@@ -54,6 +54,7 @@ func main() {
 	menuService := service.NewMenuService(menuDAO)
 	logService := service.NewLogService(logDAO)
 	loginLogService := service.NewLoginLogService(loginLogDAO)
+	alertMailService := service.NewAlertMailService(cfg)
 
 	// RabbitMQ
 	amqpConn, err := amqp091.Dial(cfg.RabbitMQ.DSN())
@@ -76,8 +77,12 @@ func main() {
 	exportWorker := worker.NewExportWorker(rdb, amqpConn, logService, hub)
 	go exportWorker.Start()
 
+	// Mail Worker
+	mailWorker := worker.NewMailWorker(amqpConn, alertMailService)
+	go mailWorker.Start()
+
 	// Controller
-	authCtrl := controller.NewAuthController(authService, menuDAO, loginLogService)
+	authCtrl := controller.NewAuthController(authService, menuDAO, loginLogService, rdb, publishCh)
 	userCtrl := controller.NewUserController(userService)
 	roleCtrl := controller.NewRoleController(roleService)
 	menuCtrl := controller.NewMenuController(menuService)

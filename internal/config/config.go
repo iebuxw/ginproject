@@ -12,6 +12,7 @@ type Config struct {
 	Redis    RedisConfig
 	JWT      JWTConfig
 	RabbitMQ RabbitMQConfig
+	Mail     MailConfig
 }
 
 type ServerConfig struct{ Port string }
@@ -36,6 +37,16 @@ type RabbitMQConfig struct {
 	Port     string
 	User     string
 	Password string
+}
+
+// MailConfig SMTP 邮件配置；SMTPHost/TO 为空时邮件功能自动禁用
+type MailConfig struct {
+	SMTPHost     string
+	SMTPPort     string
+	SMTPUser     string
+	SMTPPassword string
+	SMTPFrom     string
+	SMTPTo       string
 }
 
 func (c RabbitMQConfig) DSN() string {
@@ -73,6 +84,14 @@ func Load() *Config {
 			Port:     viper.GetString("RABBITMQ_PORT"),
 			User:     viper.GetString("RABBITMQ_USER"),
 			Password: viper.GetString("RABBITMQ_PASSWORD"),
+		},
+		Mail: MailConfig{
+			SMTPHost:     viper.GetString("SMTP_HOST"),
+			SMTPPort:     viper.GetString("SMTP_PORT"),
+			SMTPUser:     viper.GetString("SMTP_USER"),
+			SMTPPassword: viper.GetString("SMTP_PASSWORD"),
+			SMTPFrom:     viper.GetString("SMTP_FROM"),
+			SMTPTo:       viper.GetString("SMTP_TO"),
 		},
 	}
 }

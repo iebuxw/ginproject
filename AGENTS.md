@@ -21,7 +21,8 @@ docker compose up -d                   # 启动全部
 
 - 访问地址：http://localhost:8080（nginx → Vue SPA，`/api` 代理到 go-app:8000）
 - 固定端口：go-app **8000**，nginx **8080**，容器内 mysql **3306**/宿主机 **3307**，redis 容器内 **6379**/宿主机 **6380**，rabbitmq **5672**（管理台 15672），elasticsearch **9200**，kibana **5601**
-- 默认账号：`admin` / `admin`
+- 默认账号：`admin` / `admin`（**数据库里 admin 密码实际为 `123456`，以 DB 为准；如需登录直接用 `123456`**）
+- **红线：未经用户明确同意，不得擅自修改/重置用户数据或密码**。验证登录受阻时应先询问用户，而非直接改数据库。
 - **无测试、无 lint/typecheck 配置**，也没有 CI。DDL 由 `AutoMigrate` 自动建表，无迁移文件。
 
 ## 本地运行须知（重要）

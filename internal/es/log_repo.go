@@ -11,14 +11,13 @@ import (
 
 	"ginproject/internal/model"
 
-	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
 
 // LogRepo ES 操作日志数据访问层（对标 dao.LogDAO 的 ES 版本）
-type LogRepo struct{ cli *elasticsearch.Client }
+type LogRepo struct{ cli *Client }
 
-func NewLogRepo(cli *elasticsearch.Client) *LogRepo { return &LogRepo{cli: cli} }
+func NewLogRepo(cli *Client) *LogRepo { return &LogRepo{cli: cli} }
 
 // Enabled 判断 ES 是否可用；nil 时组件仍可调用，方法内部降级
 func (r *LogRepo) Enabled() bool { return r != nil && r.cli != nil }
@@ -38,7 +37,7 @@ func (r *LogRepo) Index(log *model.OperationLog) error {
 		DocumentID: fmt.Sprintf("%d", log.ID),
 		Body:       bytes.NewReader(body),
 		Refresh:    "true",
-	}).Do(context.Background(), r.cli)
+	}).Do(context.Background(), r.cli.RawClient())
 	if err != nil {
 		return err
 	}
@@ -96,7 +95,8 @@ func (r *LogRepo) Search(ctx context.Context, q SearchQuery) ([]SearchHitDoc, in
 	if err := json.NewEncoder(&buf).Encode(body); err != nil {
 		return nil, 0, err
 	}
-	res, err := r.cli.Search(r.cli.Search.WithContext(ctx), r.cli.Search.WithIndex(LogIndex), r.cli.Search.WithBody(&buf))
+	raw := r.cli.RawClient()
+	res, err := raw.Search(raw.Search.WithContext(ctx), raw.Search.WithIndex(LogIndex), raw.Search.WithBody(&buf))
 	if err != nil {
 		return nil, 0, err
 	}

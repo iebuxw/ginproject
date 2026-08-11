@@ -68,6 +68,38 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  elasticsearch:
+    build:
+      context: .
+      dockerfile: docker/elasticsearch.Dockerfile
+    container_name: ginadmin-elasticsearch
+    restart: always
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health?wait_for_status=yellow"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  kibana:
+    image: kibana:7.17.15
+    container_name: ginadmin-kibana
+    restart: always
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
   nginx:
     build:
       context: .
@@ -82,3 +114,4 @@ services:
 volumes:
   mysql-data:
   redis-data:
+  es-data:

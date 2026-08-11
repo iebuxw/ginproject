@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
 	"time"
 
+	"ginproject/internal/es"
 	"ginproject/internal/service"
 	"ginproject/internal/utils"
 
@@ -30,14 +32,36 @@ func NewLogController(logService *service.LogService, rdb *redis.Client, amqpCh 
 func (ctl *LogController) List(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	keyword := c.Query("keyword")
 	module := c.Query("module")
 	method := c.Query("method")
+	startTime := c.Query("start_time")
+	endTime := c.Query("end_time")
+
+	// 优先走 ES 全文检索；失败或未启用时回退 MySQL
+	if ctl.logService.ESEnabled() {
+		hits, total, err := ctl.logService.SearchFromES(es.SearchQuery{
+			Keyword:   keyword,
+			Module:    module,
+			Method:    method,
+			StartTime: startTime,
+			EndTime:   endTime,
+			From:      (page - 1) * pageSize,
+			Size:      pageSize,
+		})
+		if err == nil {
+			utils.Success(c, gin.H{"list": hits, "total": total, "data_source": "es"})
+			return
+		}
+		log.Printf("ES 查询失败，回退 MySQL: %v", err)
+	}
+
 	logs, total, err := ctl.logService.FindPage(page, pageSize, module, method)
 	if err != nil {
 		utils.Error(c, 500, err.Error())
 		return
 	}
-	utils.Success(c, gin.H{"list": logs, "total": total})
+	utils.Success(c, gin.H{"list": logs, "total": total, "data_source": "mysql"})
 }
 
 func (ctl *LogController) Export(c *gin.Context) {

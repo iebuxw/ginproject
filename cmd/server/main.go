@@ -5,6 +5,7 @@ import (
 	"ginproject/internal/config"
 	"ginproject/internal/controller"
 	"ginproject/internal/dao"
+	"ginproject/internal/es"
 	"ginproject/internal/model"
 	"ginproject/internal/router"
 	"ginproject/internal/service"
@@ -40,6 +41,19 @@ func main() {
 	// AutoMigrate
 	db.AutoMigrate(&model.User{}, &model.Role{}, &model.Menu{}, &model.OperationLog{}, &model.LoginLog{})
 
+	// Elasticsearch（学习用；失败不 fatal：写入跳过、查询回退 MySQL）
+	esClient, esErr := es.NewClient(&cfg.Elasticsearch)
+	if esErr != nil || esClient.Ping() != nil {
+		log.Printf("警告: Elasticsearch 不可用，日志全文搜索将回退 MySQL: %v", esErr)
+		esClient = nil
+	}
+	logRepo := es.NewLogRepo(esClient)
+	if logRepo.Enabled() {
+		if err := es.EnsureIndex(esClient.RawClient()); err != nil {
+			log.Printf("警告: ES 索引初始化失败: %v", err)
+		}
+	}
+
 	// DAO
 	userDAO := dao.NewUserDAO(db)
 	roleDAO := dao.NewRoleDAO(db)
@@ -52,7 +66,7 @@ func main() {
 	userService := service.NewUserService(userDAO)
 	roleService := service.NewRoleService(roleDAO)
 	menuService := service.NewMenuService(menuDAO)
-	logService := service.NewLogService(logDAO)
+	logService := service.NewLogService(logDAO, logRepo)
 	loginLogService := service.NewLoginLogService(loginLogDAO)
 	alertMailService := service.NewAlertMailService(cfg)
 
@@ -93,7 +107,7 @@ func main() {
 	seedDefaultData(db)
 
 	// Router
-	r := router.Setup(cfg, authCtrl, userCtrl, roleCtrl, menuCtrl, logCtrl, loginLogCtrl, wsCtrl, authService, userDAO, menuDAO, logDAO)
+	r := router.Setup(cfg, authCtrl, userCtrl, roleCtrl, menuCtrl, logCtrl, loginLogCtrl, wsCtrl, authService, userDAO, menuDAO, logDAO, logRepo)
 
 	log.Printf("Server running on :%s", cfg.Server.Port)
 	if err := r.Run(":" + cfg.Server.Port); err != nil {

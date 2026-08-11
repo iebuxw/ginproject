@@ -3,14 +3,16 @@ package middleware
 import (
 	"bytes"
 	"ginproject/internal/dao"
+	"ginproject/internal/es"
 	"ginproject/internal/model"
 	"io"
+	"log"
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
-func OperationLogger(logDAO *dao.LogDAO) gin.HandlerFunc {
+func OperationLogger(logDAO *dao.LogDAO, logRepo *es.LogRepo) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		var body string
@@ -33,7 +35,7 @@ func OperationLogger(logDAO *dao.LogDAO) gin.HandlerFunc {
 		duration := int(time.Since(start).Milliseconds())
 		userID, _ := c.Get("user_id")
 		uid, _ := userID.(uint)
-		log := &model.OperationLog{
+		logEntry := &model.OperationLog{
 			OperatorID: uid,
 			Method:     c.Request.Method,
 			Path:       c.Request.URL.Path,
@@ -42,6 +44,13 @@ func OperationLogger(logDAO *dao.LogDAO) gin.HandlerFunc {
 			IP:         c.ClientIP(),
 			CreatedAt:  model.DateTime(time.Now()),
 		}
-		_ = logDAO.Create(log)
+		_ = logDAO.Create(logEntry)
+
+		// 双写 ES：同步写入，失败仅告警，不阻断请求
+		if logRepo != nil && logRepo.Enabled() {
+			if err := logRepo.Index(logEntry); err != nil {
+				log.Printf("ES 日志写入失败: %v", err)
+			}
+		}
 	}
 }

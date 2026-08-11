@@ -4,6 +4,7 @@ import (
 	"ginproject/internal/config"
 	"ginproject/internal/controller"
 	"ginproject/internal/dao"
+	"ginproject/internal/es"
 	"ginproject/internal/middleware"
 	"ginproject/internal/service"
 
@@ -23,6 +24,7 @@ func Setup(
 	userDAO *dao.UserDAO,
 	menuDAO *dao.MenuDAO,
 	logDAO *dao.LogDAO,
+	logRepo *es.LogRepo,
 ) *gin.Engine {
 	r := gin.Default()
 	r.Use(middleware.CORS())
@@ -42,39 +44,39 @@ func Setup(
 
 		// 用户管理
 		authorized.GET("/users",
-			middleware.RequirePerm("user:list"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO), userCtrl.List)
+			middleware.RequirePerm("user:list"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), userCtrl.List)
 		authorized.GET("/users/:id",
-			middleware.RequirePerm("user:query"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO), userCtrl.Get)
+			middleware.RequirePerm("user:query"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), userCtrl.Get)
 		authorized.POST("/users",
-			middleware.RequirePerm("user:add"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO), userCtrl.Create)
+			middleware.RequirePerm("user:add"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), userCtrl.Create)
 		authorized.PUT("/users/:id",
-			middleware.RequirePerm("user:edit"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO), userCtrl.Update)
+			middleware.RequirePerm("user:edit"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), userCtrl.Update)
 		authorized.DELETE("/users/:id",
-			middleware.RequirePerm("user:delete"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO), userCtrl.Delete)
+			middleware.RequirePerm("user:delete"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), userCtrl.Delete)
 
 		// 角色管理
 		authorized.GET("/roles",
-			middleware.RequirePerm("role:list"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO), roleCtrl.List)
+			middleware.RequirePerm("role:list"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), roleCtrl.List)
 		authorized.GET("/roles/:id",
-			middleware.RequirePerm("role:query"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO), roleCtrl.Get)
+			middleware.RequirePerm("role:query"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), roleCtrl.Get)
 		authorized.POST("/roles",
-			middleware.RequirePerm("role:add"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO), roleCtrl.Create)
+			middleware.RequirePerm("role:add"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), roleCtrl.Create)
 		authorized.PUT("/roles/:id",
-			middleware.RequirePerm("role:edit"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO), roleCtrl.Update)
+			middleware.RequirePerm("role:edit"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), roleCtrl.Update)
 		authorized.DELETE("/roles/:id",
-			middleware.RequirePerm("role:delete"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO), roleCtrl.Delete)
+			middleware.RequirePerm("role:delete"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), roleCtrl.Delete)
 
 		// 菜单管理
 		authorized.GET("/menus",
-			middleware.RequirePerm("menu:list"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO), menuCtrl.List)
+			middleware.RequirePerm("menu:list"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), menuCtrl.List)
 		authorized.GET("/menus/:id",
-			middleware.RequirePerm("menu:query"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO), menuCtrl.Get)
+			middleware.RequirePerm("menu:query"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), menuCtrl.Get)
 		authorized.POST("/menus",
-			middleware.RequirePerm("menu:add"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO), menuCtrl.Create)
+			middleware.RequirePerm("menu:add"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), menuCtrl.Create)
 		authorized.PUT("/menus/:id",
-			middleware.RequirePerm("menu:edit"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO), menuCtrl.Update)
+			middleware.RequirePerm("menu:edit"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), menuCtrl.Update)
 		authorized.DELETE("/menus/:id",
-			middleware.RequirePerm("menu:delete"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO), menuCtrl.Delete)
+			middleware.RequirePerm("menu:delete"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), menuCtrl.Delete)
 
 		// 登录日志
 		authorized.GET("/login-logs",
@@ -82,7 +84,7 @@ func Setup(
 
 		// 操作日志
 		authorized.GET("/logs",
-			middleware.RequirePerm("log:list"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO), logCtrl.List)
+			middleware.RequirePerm("log:list"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), logCtrl.List)
 		authorized.POST("/logs/export",
 			middleware.RequirePerm("log:export"), middleware.RBAC(menuDAO), logCtrl.Export)
 		authorized.GET("/logs/export-status",

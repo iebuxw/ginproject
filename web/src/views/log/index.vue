@@ -4,6 +4,9 @@
       <div slot="header"><span>操作日志</span></div>
       <el-form :inline="true">
         <el-form-item>
+          <el-input v-model="filters.keyword" placeholder="搜索路径/参数/响应" clearable style="width:220px" @keyup.enter.native="fetchData"></el-input>
+        </el-form-item>
+        <el-form-item>
           <el-select v-model="filters.method" placeholder="请求方式" clearable @change="fetchData">
             <el-option label="GET" value="GET"></el-option>
             <el-option label="POST" value="POST"></el-option>
@@ -11,11 +14,25 @@
             <el-option label="DELETE" value="DELETE"></el-option>
           </el-select>
         </el-form-item>
+        <el-form-item>
+          <el-date-picker
+            v-model="filters.dateRange"
+            type="datetimerange"
+            range-separator="至"
+            start-placeholder="开始时间"
+            end-placeholder="结束时间"
+            value-format="yyyy-MM-dd HH:mm:ss"
+            @change="fetchData">
+          </el-date-picker>
+        </el-form-item>
         <el-form-item><el-button @click="fetchData">查询</el-button></el-form-item>
         <el-form-item>
           <el-button type="primary" :disabled="exporting" @click="exportExcel">
             {{ exporting ? '导出中...' : '导出Excel' }}
           </el-button>
+        </el-form-item>
+        <el-form-item>
+          <span v-if="dataSource" style="font-size:12px;color:#909399">数据源：{{ dataSource }}</span>
         </el-form-item>
       </el-form>
       <el-alert
@@ -32,10 +49,14 @@
         <el-table-column prop="id" label="ID" width="60"></el-table-column>
         <el-table-column prop="operator_id" label="操作人ID" width="80"></el-table-column>
         <el-table-column prop="method" label="方式" width="70"></el-table-column>
-        <el-table-column prop="path" label="请求路径" width="160"></el-table-column>
+        <el-table-column prop="path" label="请求路径" width="160">
+          <template slot-scope="{row}">
+            <span v-html="row.highlight_path || row.path"></span>
+          </template>
+        </el-table-column>
         <el-table-column label="参数" min-width="200">
           <template slot-scope="{row}">
-            <span class="params-preview">{{ row.params || '-' }}</span>
+            <span class="params-preview" v-html="row.highlight_params || row.params || '-'"></span>
             <el-button v-if="row.params && row.params.length > 40" type="text" @click="showParams(row.params)">详情</el-button>
           </template>
         </el-table-column>
@@ -59,7 +80,8 @@ export default {
   data() {
     return {
       list: [], page: 1, pageSize: 10, total: 0,
-      filters: { method: '' },
+      filters: { method: '', keyword: '', dateRange: [] },
+      dataSource: '',
       dialogVisible: false, dialogContent: '',
       exporting: false,
       currentTaskId: null,
@@ -80,8 +102,14 @@ export default {
   },
   methods: {
     async fetchData() {
-      const res = await getLogs({ page: this.page, page_size: this.pageSize, method: this.filters.method })
+      const params = { page: this.page, page_size: this.pageSize, keyword: this.filters.keyword, method: this.filters.method }
+      if (this.filters.dateRange && this.filters.dateRange.length === 2) {
+        params.start_time = this.filters.dateRange[0]
+        params.end_time = this.filters.dateRange[1]
+      }
+      const res = await getLogs(params)
       this.list = res.data.list; this.total = res.data.total
+      this.dataSource = res.data.data_source
     },
     pageChange(p) { this.page = p; this.fetchData() },
     showParams(val) {
@@ -131,6 +159,7 @@ export default {
 }
 </script>
 <style scoped>
+::v-deep em { color: #e6a23c; font-style: normal; }
 .params-preview {
   display: inline-block;
   max-width: 300px;

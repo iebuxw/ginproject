@@ -7,12 +7,13 @@ import (
 )
 
 type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-	Redis    RedisConfig
-	JWT      JWTConfig
-	RabbitMQ RabbitMQConfig
-	Mail     MailConfig
+	Server        ServerConfig
+	Database      DatabaseConfig
+	Redis         RedisConfig
+	JWT           JWTConfig
+	RabbitMQ      RabbitMQConfig
+	Mail          MailConfig
+	Elasticsearch ElasticsearchConfig
 }
 
 type ServerConfig struct{ Port string }
@@ -37,6 +38,18 @@ type RabbitMQConfig struct {
 	Port     string
 	User     string
 	Password string
+}
+
+// ElasticsearchConfig ES 学习环境配置（7.17 单节点，无安全认证时 Username/Password 留空）
+type ElasticsearchConfig struct {
+	Host     string
+	Port     string
+	Username string
+	Password string
+}
+
+func (c ElasticsearchConfig) Addr() string {
+	return fmt.Sprintf("http://%s:%s", c.Host, c.Port)
 }
 
 // MailConfig SMTP 邮件配置；SMTPHost/TO 为空时邮件功能自动禁用
@@ -92,6 +105,12 @@ func Load() *Config {
 			SMTPPassword: viper.GetString("SMTP_PASSWORD"),
 			SMTPFrom:     viper.GetString("SMTP_FROM"),
 			SMTPTo:       viper.GetString("SMTP_TO"),
+		},
+		Elasticsearch: ElasticsearchConfig{
+			Host:     viper.GetString("ES_HOST"),
+			Port:     viper.GetString("ES_PORT"),
+			Username: viper.GetString("ES_USERNAME"),
+			Password: viper.GetString("ES_PASSWORD"),
 		},
 	}
 }

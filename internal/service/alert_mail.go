@@ -59,22 +59,34 @@ func (s *AlertMailService) SendLoginAlert(username, ip, message string) error {
 }
 
 func (s *AlertMailService) sendMail(addr, from, to string, msg []byte) error {
-	conn, err := net.DialTimeout("tcp", addr, smtpDialTimeout)
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return err
+	}
+
+	var conn net.Conn
+	if port == "465" {
+		// 465 端口为隐式 SSL，需先建立 TLS 连接
+		conn, err = tls.DialWithDialer(&net.Dialer{Timeout: smtpDialTimeout}, "tcp", addr, &tls.Config{ServerName: host})
+	} else {
+		conn, err = net.DialTimeout("tcp", addr, smtpDialTimeout)
+	}
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
 
-	host, _, _ := net.SplitHostPort(addr)
 	client, err := smtp.NewClient(conn, host)
 	if err != nil {
 		return err
 	}
 	defer client.Close()
 
-	if hasStartTLS, _ := client.Extension("STARTTLS"); hasStartTLS {
-		if err := client.StartTLS(&tls.Config{ServerName: host}); err != nil {
-			return err
+	if port != "465" {
+		if hasStartTLS, _ := client.Extension("STARTTLS"); hasStartTLS {
+			if err := client.StartTLS(&tls.Config{ServerName: host}); err != nil {
+				return err
+			}
 		}
 	}
 

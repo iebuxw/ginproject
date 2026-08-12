@@ -39,7 +39,15 @@ docker compose restart redis  # 重启单个服务
 
 **访问地址：** http://localhost:8080（nginx → Vue SPA + /api 代理到 go-app:8000）
 
-**默认管理员：** admin / admin
+**默认管理员：** `admin` / `admin`（seed 脚本写入）；但 DB 中实际密码已被改为 `123456`，登录受阻先用 `123456`，**未经用户明确同意不得擅自重置密码/用户数据**。
+
+### 本地运行须知
+
+`.env` 被 gitignore，仓库内的 `.env` 填的是 docker 服务名（`mysql`/`redis`/`rabbitmq`/`elasticsearch`）。本机 `go run` 需覆盖：`MYSQL_PORT=3307`、`REDIS_PORT=6380`、`RABBITMQ_HOST=127.0.0.1`、`RABBITMQ_PORT=5672`、`ES_HOST=127.0.0.1`。`.env.example` 漏写 RabbitMQ 变量，复制时易漏。
+
+### 测试与 Lint
+
+**无测试、无 lint/typecheck、无 CI。** DDL 由 `AutoMigrate` 自动建表，无迁移文件。
 
 ## 架构
 
@@ -52,8 +60,10 @@ internal/
   controller/                # 请求处理，参数绑定，调用 service
   service/                   # 业务逻辑（密码哈希、菜单树、token 黑名单）
   dao/                       # GORM 数据访问
-  model/                     # 结构体：User、Role、Menu、OperationLog、DateTime
+  model/                     # 结构体：User、Role、Menu、OperationLog、LoginLog、DateTime
 ```
+
+实际还有 `es/`（Elasticsearch 客户端 + LogRepo，操作日志全文检索）、`worker/`（导出/邮件后台 worker，消费 RabbitMQ）、`ws/`（WebSocket Hub）、`utils/`（response/jwt/hash/uuid）。
 
 **分层：** router → middleware → controller → service → dao → model（无接口抽象，直接依赖具体类型）
 
@@ -84,13 +94,35 @@ User ──N:M── Role ──N:M── Menu
 - 捕获请求 body 作为 params，无 body 时回退用请求路径
 - 创建时间用自定义 `DateTime` 类型，JSON 格式 `2006-01-02 15:04:05`
 
+### 操作日志 ES 双写（学习功能）
+
+- 中间件写 MySQL 后同步写 ES（`es.LogRepo.Index`，`_id`=MySQL 主键，`Refresh:"true"` 立即可见）；ES 不可用仅 `log.Printf` 告警，不阻断请求
+- `GET /logs` 优先走 ES（bool / multi_match / range / highlight，IK 中文分词），ES 失败自动回退 MySQL；响应带 `data_source` 标记（`es`/`mysql`）
+- ES 初始化失败不 fatal：`main.go` 置 `esClient=nil`，`logRepo` 始终非 nil，`Enabled()` 返回 false 即整体降级
+- **版本强绑定**：IK 插件必须与 ES 严格同版本（当前均 7.17.15），镜像在 `docker/elasticsearch.Dockerfile` 从 `get.infini.cloud/elasticsearch/analysis-ik` 下载
+- `es.NewLogRepo(cli *es.Client)` 接受包装的 `*es.Client`（可传 nil），内部经 `cli.RawClient()` 拿原生 client
+
+### 异步导出流程（命名看不出来）
+
+1. `POST /api/logs/export`：写 Redis task `excel:task:<id>`（pending、user_id、method）+ 发布到 RabbitMQ 队列 `excel.export`
+2. `worker.Start()`（main.go 里 goroutine）消费 -> 用 excelize `StreamWriter` 流式写 `exports/<taskID>.xlsx`（`exports/` 已 gitignore）-> 回写 task 状态
+3. WebSocket 推 `export_complete` / `export_failed`
+4. 前端轮询 `GET /api/logs/export-status?task_id=`，完成后 `GET /api/logs/download/:taskID` 下载（下载后服务端删除该 xlsx）
+
+**Excel 写逻辑务必用 `StreamWriter.SetRow`，不要和 `SetCellValue` 混用**（混用会导致表头丢失）。
+
+### WebSocket
+
+`/api/ws` 是**公开路由**（不走 JWT），由 `ws.Hub` 维护连接并按 `user_id` 推送。nginx 需转发 `Upgrade` 头（已在 `docker/nginx.conf` 配置）。
+
 ## 注意事项
 
 - `utils.Error` 返回 HTTP 200（业务错误码），需要改 HTTP 状态码用 `ErrorWithStatus`
 - `OperationLog.Module` / `Action` 字段中间件未填充，当前始终为空
 - 用户管理 CRUD 不支持分配角色
-- `.env` 和 `web/dist/` 被 gitignore，Docker 在构建阶段自行编译前端
+- `.env`、`web/dist/`、`exports/` 均 gitignore，Docker 在构建阶段自行编译前端
 - Redis 是 `redis:3.2-alpine`，**不支持 HSET 多字段**（4.0+ 才支持），多字段需拆成单字段调用
+- 前端是 **Vue 2 + Element UI**（不是 Vue 3）；`web/src/store/modules/permission.js` 用后端菜单树动态生成路由
 - RabbitMQ 是 `rabbitmq:3-management`，通过 `amqp091-go` 连接
 - WebSocket 走 `gorilla/websocket`，nginx 需配置 `proxy_set_header Upgrade $http_upgrade` 转发 WebSocket 升级头
 - `DateTime` 类型不会触发 GORM 自动时间戳，需手动设置 `CreatedAt`

@@ -19,7 +19,12 @@ func (d *UserDAO) Update(u *model.User) error {
 		if err := tx.Model(u).Association("Roles").Replace(u.Roles); err != nil {
 			return err
 		}
-		return tx.Omit("created_at").Save(u).Error
+		q := tx.Omit("created_at")
+		// 密码为空时表示不修改密码，避免全字段覆盖把密码清空
+		if u.Password == "" {
+			q = q.Omit("password")
+		}
+		return q.Save(u).Error
 	})
 }
 

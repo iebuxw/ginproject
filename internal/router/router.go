@@ -8,7 +8,11 @@ import (
 	"ginproject/internal/middleware"
 	"ginproject/internal/service"
 
+	_ "ginproject/docs"
+
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func Setup(
@@ -95,6 +99,9 @@ func Setup(
 
 	// WebSocket
 	r.GET("/api/ws", wsCtrl.Handle)
+
+	// Swagger UI（无需认证）
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	return r
 }

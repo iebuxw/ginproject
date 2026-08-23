@@ -29,6 +29,21 @@ func NewLogController(logService *service.LogService, rdb *redis.Client, amqpCh 
 	return &LogController{logService: logService, rdb: rdb, amqpCh: amqpCh}
 }
 
+// List 查询操作日志
+// @Summary 查询操作日志
+// @Description 分页查询操作日志，优先走 ES 全文检索，失败回退 MySQL
+// @Tags 操作日志
+// @Security BearerAuth
+// @Produce json
+// @Param page query int false "页码" default(1)
+// @Param page_size query int false "每页数量" default(10)
+// @Param keyword query string false "搜索关键词"
+// @Param module query string false "模块筛选"
+// @Param method query string false "请求方法筛选"
+// @Param start_time query string false "开始时间 (RFC3339)"
+// @Param end_time query string false "结束时间 (RFC3339)"
+// @Success 200 {object} utils.Response{data=object{list=array,total=int,data_source=string}} "成功"
+// @Router /logs [get]
 func (ctl *LogController) List(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
@@ -64,6 +79,17 @@ func (ctl *LogController) List(c *gin.Context) {
 	utils.Success(c, gin.H{"list": logs, "total": total, "data_source": "mysql"})
 }
 
+// Export 发起日志导出任务
+// @Summary 发起日志导出任务
+// @Description 异步导出操作日志为 Excel 文件，通过 WebSocket 通知完成
+// @Tags 操作日志
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param body body object false "导出参数"
+// @Param body.body.method body string false "请求方法筛选"
+// @Success 200 {object} utils.Response{data=object{task_id=string}} "成功，返回任务 ID"
+// @Router /logs/export [post]
 func (ctl *LogController) Export(c *gin.Context) {
 	var req struct {
 		Method string `json:"method"`
@@ -89,6 +115,16 @@ func (ctl *LogController) Export(c *gin.Context) {
 	utils.Success(c, gin.H{"task_id": taskID})
 }
 
+// ExportStatus 查询导出任务状态
+// @Summary 查询导出任务状态
+// @Description 根据任务 ID 查询导出进度
+// @Tags 操作日志
+// @Security BearerAuth
+// @Produce json
+// @Param task_id query string true "任务 ID"
+// @Success 200 {object} utils.Response{data=object{status=string,filename=string}} "成功"
+// @Failure 200 {object} utils.Response "任务不存在"
+// @Router /logs/export-status [get]
 func (ctl *LogController) ExportStatus(c *gin.Context) {
 	taskID := c.Query("task_id")
 	if taskID == "" {
@@ -103,6 +139,16 @@ func (ctl *LogController) ExportStatus(c *gin.Context) {
 	utils.Success(c, fields)
 }
 
+// Download 下载导出文件
+// @Summary 下载导出文件
+// @Description 下载已完成的导出文件，下载后服务端自动删除
+// @Tags 操作日志
+// @Security BearerAuth
+// @Produce application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+// @Param taskID path string true "任务 ID"
+// @Success 200 {file} binary "Excel 文件"
+// @Failure 200 {object} utils.Response "无权下载或文件不存在"
+// @Router /logs/download/{taskID} [get]
 func (ctl *LogController) Download(c *gin.Context) {
 	taskID := c.Param("taskID")
 	taskKey := "excel:task:" + taskID

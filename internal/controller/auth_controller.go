@@ -31,6 +31,18 @@ func NewAuthController(authService *service.AuthService, menuDAO *dao.MenuDAO, l
 // alertMailLimitTTL 同一 IP 的登录告警邮件限频窗口
 const alertMailLimitTTL = 5 * time.Minute
 
+// Login 用户登录
+// @Summary 用户登录
+// @Description 使用用户名和密码登录，返回 JWT Token
+// @Tags 认证
+// @Accept json
+// @Produce json
+// @Param body body object true "登录参数"
+// @Param body.body.username body string true "用户名"
+// @Param body.body.password body string true "密码"
+// @Success 200 {object} utils.Response{data=object{token=string,user=model.User}} "成功"
+// @Failure 200 {object} utils.Response "业务错误"
+// @Router /auth/login [post]
 func (ctl *AuthController) Login(c *gin.Context) {
 	var req struct {
 		Username string `json:"username" binding:"required"`
@@ -80,6 +92,14 @@ func (ctl *AuthController) publishLoginAlert(username, ip, message string) {
 	}
 }
 
+// Logout 用户登出
+// @Summary 用户登出
+// @Description 将当前 Token 加入 Redis 黑名单
+// @Tags 认证
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} utils.Response "成功"
+// @Router /auth/logout [post]
 func (ctl *AuthController) Logout(c *gin.Context) {
 	token, _ := c.Get("token")
 	if ts, ok := token.(string); ok {
@@ -88,6 +108,19 @@ func (ctl *AuthController) Logout(c *gin.Context) {
 	utils.Success(c, nil)
 }
 
+// ChangePassword 修改密码
+// @Summary 修改密码
+// @Description 修改当前用户的登录密码
+// @Tags 认证
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param body body object true "密码参数"
+// @Param body.body.old_password body string true "旧密码"
+// @Param body.body.new_password body string true "新密码"
+// @Success 200 {object} utils.Response "成功"
+// @Failure 200 {object} utils.Response "业务错误"
+// @Router /auth/change-password [post]
 func (ctl *AuthController) ChangePassword(c *gin.Context) {
 	var req struct {
 		OldPassword string `json:"old_password" binding:"required"`
@@ -106,6 +139,14 @@ func (ctl *AuthController) ChangePassword(c *gin.Context) {
 	utils.Success(c, nil)
 }
 
+// UserInfo 获取当前用户信息
+// @Summary 获取当前用户信息
+// @Description 返回当前用户的 ID、用户名、菜单树和权限列表
+// @Tags 认证
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} utils.Response{data=object{id=uint,username=string,menus=array,permissions=[]string}} "成功"
+// @Router /auth/userinfo [get]
 func (ctl *AuthController) UserInfo(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	username, _ := c.Get("username")

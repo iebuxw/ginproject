@@ -1,0 +1,909 @@
+basePath: /api
+definitions:
+  model.LoginLog:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      ip:
+        type: string
+      message:
+        type: string
+      status:
+        type: integer
+      username:
+        type: string
+    type: object
+  model.Menu:
+    properties:
+      children:
+        items:
+          $ref: '#/definitions/model.Menu'
+        type: array
+      created_at:
+        type: string
+      icon:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      parent_id:
+        type: integer
+      path:
+        type: string
+      permission:
+        type: string
+      sort:
+        type: integer
+      status:
+        type: integer
+      type:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  model.Role:
+    properties:
+      code:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      menus:
+        items:
+          $ref: '#/definitions/model.Menu'
+        type: array
+      name:
+        type: string
+      status:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  model.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      last_login_at:
+        type: string
+      phone:
+        type: string
+      roles:
+        items:
+          $ref: '#/definitions/model.Role'
+        type: array
+      status:
+        type: integer
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+  utils.Response:
+    properties:
+      code:
+        type: integer
+      data: {}
+      message:
+        type: string
+    type: object
+host: localhost:8000
+info:
+  contact: {}
+  description: 后台管理系统 API 文档
+  title: GinAdmin API
+  version: "1.0"
+paths:
+  /auth/change-password:
+    post:
+      consumes:
+      - application/json
+      description: 修改当前用户的登录密码
+      parameters:
+      - description: 密码参数
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      - description: 旧密码
+        in: body
+        name: body.body.old_password
+        required: true
+        schema:
+          type: string
+      - description: 新密码
+        in: body
+        name: body.body.new_password
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 业务错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 修改密码
+      tags:
+      - 认证
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: 使用用户名和密码登录，返回 JWT Token
+      parameters:
+      - description: 登录参数
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      - description: 用户名
+        in: body
+        name: body.body.username
+        required: true
+        schema:
+          type: string
+      - description: 密码
+        in: body
+        name: body.body.password
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 业务错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: 用户登录
+      tags:
+      - 认证
+  /auth/logout:
+    post:
+      description: 将当前 Token 加入 Redis 黑名单
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 用户登出
+      tags:
+      - 认证
+  /auth/userinfo:
+    get:
+      description: 返回当前用户的 ID、用户名、菜单树和权限列表
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  properties:
+                    id:
+                      type: integer
+                    menus:
+                      type: array
+                    permissions:
+                      items:
+                        type: string
+                      type: array
+                    username:
+                      type: string
+                  type: object
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 获取当前用户信息
+      tags:
+      - 认证
+  /login-logs:
+    get:
+      description: 分页查询登录日志记录
+      parameters:
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      - description: 用户名筛选
+        in: query
+        name: username
+        type: string
+      - default: 0
+        description: 状态筛选 1=成功 0=失败
+        in: query
+        name: status
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  properties:
+                    list:
+                      items:
+                        $ref: '#/definitions/model.LoginLog'
+                      type: array
+                    total:
+                      type: integer
+                  type: object
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 查询登录日志
+      tags:
+      - 登录日志
+  /logs:
+    get:
+      description: 分页查询操作日志，优先走 ES 全文检索，失败回退 MySQL
+      parameters:
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      - description: 搜索关键词
+        in: query
+        name: keyword
+        type: string
+      - description: 模块筛选
+        in: query
+        name: module
+        type: string
+      - description: 请求方法筛选
+        in: query
+        name: method
+        type: string
+      - description: 开始时间 (RFC3339)
+        in: query
+        name: start_time
+        type: string
+      - description: 结束时间 (RFC3339)
+        in: query
+        name: end_time
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  properties:
+                    data_source:
+                      type: string
+                    list:
+                      type: array
+                    total:
+                      type: integer
+                  type: object
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 查询操作日志
+      tags:
+      - 操作日志
+  /logs/download/{taskID}:
+    get:
+      description: 下载已完成的导出文件，下载后服务端自动删除
+      parameters:
+      - description: 任务 ID
+        in: path
+        name: taskID
+        required: true
+        type: string
+      produces:
+      - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+      responses:
+        "200":
+          description: 无权下载或文件不存在
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 下载导出文件
+      tags:
+      - 操作日志
+  /logs/export:
+    post:
+      consumes:
+      - application/json
+      description: 异步导出操作日志为 Excel 文件，通过 WebSocket 通知完成
+      parameters:
+      - description: 导出参数
+        in: body
+        name: body
+        schema:
+          type: object
+      - description: 请求方法筛选
+        in: body
+        name: body.body.method
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功，返回任务 ID
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  properties:
+                    task_id:
+                      type: string
+                  type: object
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 发起日志导出任务
+      tags:
+      - 操作日志
+  /logs/export-status:
+    get:
+      description: 根据任务 ID 查询导出进度
+      parameters:
+      - description: 任务 ID
+        in: query
+        name: task_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 任务不存在
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 查询导出任务状态
+      tags:
+      - 操作日志
+  /menus:
+    get:
+      description: 获取完整菜单树形结构
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.Menu'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 获取菜单树
+      tags:
+      - 菜单管理
+    post:
+      consumes:
+      - application/json
+      description: 创建新菜单（目录/菜单页/按钮权限）
+      parameters:
+      - description: 菜单信息
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.Menu'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 业务错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 新建菜单
+      tags:
+      - 菜单管理
+  /menus/{id}:
+    delete:
+      description: 根据 ID 删除菜单，有子菜单时拒绝删除
+      parameters:
+      - description: 菜单 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 存在子菜单，无法删除
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 删除菜单
+      tags:
+      - 菜单管理
+    get:
+      description: 根据 ID 查询菜单详情
+      parameters:
+      - description: 菜单 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 菜单不存在
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 获取菜单详情
+      tags:
+      - 菜单管理
+    put:
+      consumes:
+      - application/json
+      description: 更新菜单信息
+      parameters:
+      - description: 菜单 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 菜单信息
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.Menu'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 业务错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 编辑菜单
+      tags:
+      - 菜单管理
+  /roles:
+    get:
+      description: 分页查询角色列表，支持关键词搜索
+      parameters:
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      - description: 搜索关键词（角色名/编码）
+        in: query
+        name: keyword
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  properties:
+                    list:
+                      items:
+                        $ref: '#/definitions/model.Role'
+                      type: array
+                    total:
+                      type: integer
+                  type: object
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 获取角色分页列表
+      tags:
+      - 角色管理
+    post:
+      consumes:
+      - application/json
+      description: 创建新角色并分配菜单权限
+      parameters:
+      - description: 角色信息
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      - description: 角色名称
+        in: body
+        name: body.body.name
+        required: true
+        schema:
+          type: string
+      - description: 角色编码
+        in: body
+        name: body.body.code
+        required: true
+        schema:
+          type: string
+      - description: 描述
+        in: body
+        name: body.body.description
+        schema:
+          type: string
+      - description: 菜单 ID 列表
+        in: body
+        name: body.body.menu_ids
+        schema:
+          items:
+            type: integer
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 业务错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 新建角色
+      tags:
+      - 角色管理
+  /roles/{id}:
+    delete:
+      description: 根据 ID 删除角色
+      parameters:
+      - description: 角色 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 删除角色
+      tags:
+      - 角色管理
+    get:
+      description: 根据 ID 查询角色详情，包含关联的菜单 ID 列表
+      parameters:
+      - description: 角色 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 角色不存在
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 获取角色详情
+      tags:
+      - 角色管理
+    put:
+      consumes:
+      - application/json
+      description: 更新角色信息及菜单权限
+      parameters:
+      - description: 角色 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 角色信息
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      - description: 角色名称
+        in: body
+        name: body.body.name
+        required: true
+        schema:
+          type: string
+      - description: 角色编码
+        in: body
+        name: body.body.code
+        required: true
+        schema:
+          type: string
+      - description: 描述
+        in: body
+        name: body.body.description
+        schema:
+          type: string
+      - description: 菜单 ID 列表
+        in: body
+        name: body.body.menu_ids
+        schema:
+          items:
+            type: integer
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 业务错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 编辑角色
+      tags:
+      - 角色管理
+  /users:
+    get:
+      description: 分页查询用户列表，支持关键词搜索
+      parameters:
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      - description: 搜索关键词（用户名/邮箱）
+        in: query
+        name: keyword
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  properties:
+                    list:
+                      items:
+                        $ref: '#/definitions/model.User'
+                      type: array
+                    total:
+                      type: integer
+                  type: object
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 获取用户分页列表
+      tags:
+      - 用户管理
+    post:
+      consumes:
+      - application/json
+      description: 创建新用户并分配角色
+      parameters:
+      - description: 用户信息
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      - description: 用户名
+        in: body
+        name: body.body.username
+        required: true
+        schema:
+          type: string
+      - description: 密码
+        in: body
+        name: body.body.password
+        required: true
+        schema:
+          type: string
+      - description: 邮箱
+        in: body
+        name: body.body.email
+        schema:
+          type: string
+      - description: 手机号
+        in: body
+        name: body.body.phone
+        schema:
+          type: string
+      - default: 1
+        description: 状态 1=启用 0=禁用
+        in: body
+        name: body.body.status
+        schema:
+          type: integer
+      - description: 角色 ID 列表
+        in: body
+        name: body.body.role_ids
+        schema:
+          items:
+            type: integer
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 业务错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 新建用户
+      tags:
+      - 用户管理
+  /users/{id}:
+    delete:
+      description: 根据 ID 删除用户
+      parameters:
+      - description: 用户 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 删除用户
+      tags:
+      - 用户管理
+    get:
+      description: 根据 ID 查询用户详情
+      parameters:
+      - description: 用户 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 用户不存在
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 获取用户详情
+      tags:
+      - 用户管理
+    put:
+      consumes:
+      - application/json
+      description: 更新用户信息，密码为空时不覆盖
+      parameters:
+      - description: 用户 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 用户信息
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      - description: 用户名
+        in: body
+        name: body.body.username
+        required: true
+        schema:
+          type: string
+      - description: 密码（为空不修改）
+        in: body
+        name: body.body.password
+        schema:
+          type: string
+      - description: 邮箱
+        in: body
+        name: body.body.email
+        schema:
+          type: string
+      - description: 手机号
+        in: body
+        name: body.body.phone
+        schema:
+          type: string
+      - description: 状态 1=启用 0=禁用
+        in: body
+        name: body.body.status
+        schema:
+          type: integer
+      - description: 角色 ID 列表
+        in: body
+        name: body.body.role_ids
+        schema:
+          items:
+            type: integer
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 业务错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 编辑用户
+      tags:
+      - 用户管理
+securityDefinitions:
+  BearerAuth:
+    description: 'JWT Token，格式: Bearer {token}'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

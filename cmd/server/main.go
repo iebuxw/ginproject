@@ -1,3 +1,12 @@
+// @title GinAdmin API
+// @version 1.0
+// @description 后台管理系统 API 文档
+// @host localhost:8000
+// @BasePath /api
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description JWT Token，格式: Bearer {token}
 package main
 
 import (

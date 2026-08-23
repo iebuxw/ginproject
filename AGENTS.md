@@ -10,6 +10,10 @@ go run cmd/server/main.go              # 本地运行/开发
 go build -o server ./cmd/server/       # 编译
 docker compose up -d --build go-app    # Docker 重建并重启 go
 
+# Swagger 文档
+swag init -g cmd/server/main.go        # 重新生成 Swagger 文档（改注释后必须执行）
+# 访问 http://localhost:8000/swagger/index.html 查看 API 文档
+
 # 前端 (Vue 2 + Element UI，不是 Vue 3)
 cd web && npm run serve                # 热重载，端口 3000，proxy /api -> localhost:8000
 npm run build                          # 构建到 web/dist/

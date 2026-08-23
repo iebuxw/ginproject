@@ -15,6 +15,17 @@ func NewRoleController(roleService *service.RoleService) *RoleController {
 	return &RoleController{roleService}
 }
 
+// List 获取角色分页列表
+// @Summary 获取角色分页列表
+// @Description 分页查询角色列表，支持关键词搜索
+// @Tags 角色管理
+// @Security BearerAuth
+// @Produce json
+// @Param page query int false "页码" default(1)
+// @Param page_size query int false "每页数量" default(10)
+// @Param keyword query string false "搜索关键词（角色名/编码）"
+// @Success 200 {object} utils.Response{data=object{list=[]model.Role,total=int}} "成功"
+// @Router /roles [get]
 func (ctl *RoleController) List(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
@@ -27,6 +38,16 @@ func (ctl *RoleController) List(c *gin.Context) {
 	utils.Success(c, gin.H{"list": roles, "total": total})
 }
 
+// Get 获取角色详情
+// @Summary 获取角色详情
+// @Description 根据 ID 查询角色详情，包含关联的菜单 ID 列表
+// @Tags 角色管理
+// @Security BearerAuth
+// @Produce json
+// @Param id path int true "角色 ID"
+// @Success 200 {object} utils.Response{data=object{role=model.Role,menu_ids=[]uint}} "成功"
+// @Failure 200 {object} utils.Response "角色不存在"
+// @Router /roles/{id} [get]
 func (ctl *RoleController) Get(c *gin.Context) {
 	id, _ := strconv.ParseUint(c.Param("id"), 10, 64)
 	role, err := ctl.roleService.FindByID(uint(id))
@@ -41,6 +62,21 @@ func (ctl *RoleController) Get(c *gin.Context) {
 	utils.Success(c, gin.H{"role": role, "menu_ids": menuIDs})
 }
 
+// Create 新建角色
+// @Summary 新建角色
+// @Description 创建新角色并分配菜单权限
+// @Tags 角色管理
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param body body object true "角色信息"
+// @Param body.body.name body string true "角色名称"
+// @Param body.body.code body string true "角色编码"
+// @Param body.body.description body string false "描述"
+// @Param body.body.menu_ids body []uint false "菜单 ID 列表"
+// @Success 200 {object} utils.Response "成功"
+// @Failure 200 {object} utils.Response "业务错误"
+// @Router /roles [post]
 func (ctl *RoleController) Create(c *gin.Context) {
 	var req struct {
 		Name        string `json:"name" binding:"required"`
@@ -63,6 +99,22 @@ func (ctl *RoleController) Create(c *gin.Context) {
 	utils.Success(c, nil)
 }
 
+// Update 编辑角色
+// @Summary 编辑角色
+// @Description 更新角色信息及菜单权限
+// @Tags 角色管理
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path int true "角色 ID"
+// @Param body body object true "角色信息"
+// @Param body.body.name body string true "角色名称"
+// @Param body.body.code body string true "角色编码"
+// @Param body.body.description body string false "描述"
+// @Param body.body.menu_ids body []uint false "菜单 ID 列表"
+// @Success 200 {object} utils.Response "成功"
+// @Failure 200 {object} utils.Response "业务错误"
+// @Router /roles/{id} [put]
 func (ctl *RoleController) Update(c *gin.Context) {
 	id, _ := strconv.ParseUint(c.Param("id"), 10, 64)
 	var req struct {
@@ -86,6 +138,15 @@ func (ctl *RoleController) Update(c *gin.Context) {
 	utils.Success(c, nil)
 }
 
+// Delete 删除角色
+// @Summary 删除角色
+// @Description 根据 ID 删除角色
+// @Tags 角色管理
+// @Security BearerAuth
+// @Produce json
+// @Param id path int true "角色 ID"
+// @Success 200 {object} utils.Response "成功"
+// @Router /roles/{id} [delete]
 func (ctl *RoleController) Delete(c *gin.Context) {
 	id, _ := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err := ctl.roleService.Delete(uint(id)); err != nil {

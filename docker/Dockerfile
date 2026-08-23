@@ -10,6 +10,7 @@ RUN GOPROXY=https://goproxy.cn,direct go mod download
 
 COPY cmd/ ./cmd/
 COPY internal/ ./internal/
+COPY docs/ ./docs/
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o server ./cmd/server/
 
 # ---- 运行阶段 ----

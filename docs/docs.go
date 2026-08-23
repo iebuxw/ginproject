@@ -42,24 +42,6 @@ const docTemplate = `{
                         "schema": {
                             "type": "object"
                         }
-                    },
-                    {
-                        "description": "旧密码",
-                        "name": "body.body.old_password",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "新密码",
-                        "name": "body.body.new_password",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
                     }
                 ],
                 "responses": {
@@ -92,25 +74,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
-                        }
-                    },
-                    {
-                        "description": "用户名",
-                        "name": "body.body.username",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "密码",
-                        "name": "body.body.password",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/controller.LoginRequest"
                         }
                     }
                 ],
@@ -1308,6 +1272,23 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "controller.LoginRequest": {
+            "type": "object",
+            "required": [
+                "password",
+                "username"
+            ],
+            "properties": {
+                "password": {
+                    "type": "string",
+                    "example": "123456"
+                },
+                "username": {
+                    "type": "string",
+                    "example": "admin"
+                }
+            }
+        },
         "model.LoginLog": {
             "type": "object",
             "properties": {

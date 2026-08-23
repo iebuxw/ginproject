@@ -1,5 +1,17 @@
 basePath: /api
 definitions:
+  controller.LoginRequest:
+    properties:
+      password:
+        example: "123456"
+        type: string
+      username:
+        example: admin
+        type: string
+    required:
+    - password
+    - username
+    type: object
   model.LoginLog:
     properties:
       created_at:
@@ -115,18 +127,6 @@ paths:
         required: true
         schema:
           type: object
-      - description: 旧密码
-        in: body
-        name: body.body.old_password
-        required: true
-        schema:
-          type: string
-      - description: 新密码
-        in: body
-        name: body.body.new_password
-        required: true
-        schema:
-          type: string
       produces:
       - application/json
       responses:
@@ -150,19 +150,7 @@ paths:
         name: body
         required: true
         schema:
-          type: object
-      - description: 用户名
-        in: body
-        name: body.body.username
-        required: true
-        schema:
-          type: string
-      - description: 密码
-        in: body
-        name: body.body.password
-        required: true
-        schema:
-          type: string
+          $ref: '#/definitions/controller.LoginRequest'
       produces:
       - application/json
       responses:

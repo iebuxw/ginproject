@@ -31,23 +31,24 @@ func NewAuthController(authService *service.AuthService, menuDAO *dao.MenuDAO, l
 // alertMailLimitTTL 同一 IP 的登录告警邮件限频窗口
 const alertMailLimitTTL = 5 * time.Minute
 
+// LoginRequest 登录请求参数
+type LoginRequest struct {
+	Username string `json:"username" binding:"required" example:"admin"`
+	Password string `json:"password" binding:"required" example:"123456"`
+}
+
 // Login 用户登录
 // @Summary 用户登录
 // @Description 使用用户名和密码登录，返回 JWT Token
 // @Tags 认证
 // @Accept json
 // @Produce json
-// @Param body body object true "登录参数"
-// @Param body.body.username body string true "用户名"
-// @Param body.body.password body string true "密码"
+// @Param body body LoginRequest true "登录参数"
 // @Success 200 {object} utils.Response{data=object{token=string,user=model.User}} "成功"
 // @Failure 200 {object} utils.Response "业务错误"
 // @Router /auth/login [post]
 func (ctl *AuthController) Login(c *gin.Context) {
-	var req struct {
-		Username string `json:"username" binding:"required"`
-		Password string `json:"password" binding:"required"`
-	}
+	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.Error(c, 400, "参数错误")
 		return
@@ -115,9 +116,7 @@ func (ctl *AuthController) Logout(c *gin.Context) {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Param body body object true "密码参数"
-// @Param body.body.old_password body string true "旧密码"
-// @Param body.body.new_password body string true "新密码"
+// @Param body body object true "密码参数" schema(type=object,required(old_password,new_password),properties(old_password(type=string,description=旧密码),new_password(type=string,description=新密码)))
 // @Success 200 {object} utils.Response "成功"
 // @Failure 200 {object} utils.Response "业务错误"
 // @Router /auth/change-password [post]

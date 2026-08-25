@@ -62,9 +62,8 @@ type SearchQuery struct {
 // SearchHitDoc 搜索结果（_source 字段 + 高亮字段）
 type SearchHitDoc struct {
 	model.OperationLog
-	HighlightPath     string `json:"highlight_path,omitempty"`
-	HighlightParams   string `json:"highlight_params,omitempty"`
-	HighlightResponse string `json:"highlight_response,omitempty"`
+	HighlightPath   string `json:"highlight_path,omitempty"`
+	HighlightParams string `json:"highlight_params,omitempty"`
 }
 
 // Search 组装 bool 查询 DSL 并解析命中与高亮
@@ -84,9 +83,8 @@ func (r *LogRepo) Search(ctx context.Context, q SearchQuery) ([]SearchHitDoc, in
 			"pre_tags":  []string{"<em>"},
 			"post_tags": []string{"</em>"},
 			"fields": map[string]interface{}{
-				"path":     map[string]interface{}{},
-				"params":   map[string]interface{}{},
-				"response": map[string]interface{}{},
+				"path":   map[string]interface{}{},
+				"params": map[string]interface{}{},
 			},
 		},
 	}
@@ -129,7 +127,6 @@ func (r *LogRepo) Search(ctx context.Context, q SearchQuery) ([]SearchHitDoc, in
 		}
 		doc.HighlightPath = sanitizeHighlight(join(h.Highlight["path"]))
 		doc.HighlightParams = sanitizeHighlight(join(h.Highlight["params"]))
-		doc.HighlightResponse = sanitizeHighlight(join(h.Highlight["response"]))
 		docs = append(docs, doc)
 	}
 	return docs, parsed.Hits.Total.Value, nil
@@ -142,7 +139,7 @@ func buildBoolQuery(q SearchQuery) map[string]interface{} {
 		must = append(must, map[string]interface{}{
 			"multi_match": map[string]interface{}{
 				"query":  q.Keyword,
-				"fields": []string{"path", "params", "response"},
+				"fields": []string{"path", "params"},
 			},
 		})
 	}

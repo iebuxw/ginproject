@@ -42,14 +42,32 @@ func (d *LogDAO) FindAll(module, method string) ([]model.OperationLog, error) {
 	return logs, err
 }
 
-func (d *LogDAO) FindBatch(module, method string, offset, limit int) ([]model.OperationLog, error) {
+// LogFilter 日志查询筛选条件
+type LogFilter struct {
+	Module    string
+	Method    string
+	Keyword   string
+	StartTime string
+	EndTime   string
+}
+
+func (d *LogDAO) FindBatch(f LogFilter, offset, limit int) ([]model.OperationLog, error) {
 	var logs []model.OperationLog
 	q := d.db.Model(&model.OperationLog{})
-	if module != "" {
-		q = q.Where("module = ?", module)
+	if f.Module != "" {
+		q = q.Where("module = ?", f.Module)
 	}
-	if method != "" {
-		q = q.Where("method = ?", method)
+	if f.Method != "" {
+		q = q.Where("method = ?", f.Method)
+	}
+	if f.Keyword != "" {
+		q = q.Where("(path LIKE ? OR params LIKE ?)", "%"+f.Keyword+"%", "%"+f.Keyword+"%")
+	}
+	if f.StartTime != "" {
+		q = q.Where("created_at >= ?", f.StartTime)
+	}
+	if f.EndTime != "" {
+		q = q.Where("created_at <= ?", f.EndTime)
 	}
 	err := q.Order("id DESC").Offset(offset).Limit(limit).Find(&logs).Error
 	return logs, err

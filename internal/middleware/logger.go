@@ -2,11 +2,14 @@ package middleware
 
 import (
 	"bytes"
+	"encoding/json"
 	"ginproject/internal/dao"
 	"ginproject/internal/es"
 	"ginproject/internal/model"
 	"io"
 	"log"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -27,7 +30,7 @@ func OperationLogger(logDAO *dao.LogDAO, logRepo *es.LogRepo) gin.HandlerFunc {
 			return
 		}
 
-		params := body
+		params := maskSensitiveParams(body)
 		if params == "" {
 			params = c.Request.URL.Path
 		}
@@ -51,6 +54,41 @@ func OperationLogger(logDAO *dao.LogDAO, logRepo *es.LogRepo) gin.HandlerFunc {
 			if err := logRepo.Index(logEntry); err != nil {
 				log.Printf("ES 日志写入失败: %v", err)
 			}
+		}
+	}
+}
+
+var (
+	jsonSensitiveRe = regexp.MustCompile(`(?i)("[^"]*password[^"]*"\s*:\s*)("[^"]*"|[^,}\s]+)`)
+	formSensitiveRe = regexp.MustCompile(`(?i)\b(password[a-z_]*)=[^&\s"]+`)
+)
+
+// maskSensitiveParams 将请求体中密码类字段的值替换为 ***，JSON 与非 JSON 均处理
+func maskSensitiveParams(body string) string {
+	var data interface{}
+	if err := json.Unmarshal([]byte(body), &data); err == nil {
+		maskJSONValue(data)
+		if out, err := json.Marshal(data); err == nil {
+			return string(out)
+		}
+	}
+	masked := jsonSensitiveRe.ReplaceAllString(body, `${1}"***"`)
+	return formSensitiveRe.ReplaceAllString(masked, `$1=***`)
+}
+
+func maskJSONValue(v interface{}) {
+	switch t := v.(type) {
+	case map[string]interface{}:
+		for k, val := range t {
+			if strings.Contains(strings.ToLower(k), "password") {
+				t[k] = "***"
+			} else {
+				maskJSONValue(val)
+			}
+		}
+	case []interface{}:
+		for _, item := range t {
+			maskJSONValue(item)
 		}
 	}
 }

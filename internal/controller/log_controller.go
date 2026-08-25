@@ -88,11 +88,17 @@ func (ctl *LogController) List(c *gin.Context) {
 // @Produce json
 // @Param body body object false "导出参数"
 // @Param body.body.method body string false "请求方法筛选"
+// @Param body.body.keyword body string false "搜索关键词（路径/参数）"
+// @Param body.body.start_time body string false "开始时间 (yyyy-MM-dd HH:mm:ss)"
+// @Param body.body.end_time body string false "结束时间 (yyyy-MM-dd HH:mm:ss)"
 // @Success 200 {object} utils.Response{data=object{task_id=string}} "成功，返回任务 ID"
 // @Router /logs/export [post]
 func (ctl *LogController) Export(c *gin.Context) {
 	var req struct {
-		Method string `json:"method"`
+		Method    string `json:"method"`
+		Keyword   string `json:"keyword"`
+		StartTime string `json:"start_time"`
+		EndTime   string `json:"end_time"`
 	}
 	c.ShouldBindJSON(&req)
 	uid := c.GetUint("user_id")
@@ -104,6 +110,9 @@ func (ctl *LogController) Export(c *gin.Context) {
 	ctl.rdb.HSet(ctx, taskKey, "status", "pending")
 	ctl.rdb.HSet(ctx, taskKey, "user_id", fmt.Sprintf("%d", uid))
 	ctl.rdb.HSet(ctx, taskKey, "method", req.Method)
+	ctl.rdb.HSet(ctx, taskKey, "keyword", req.Keyword)
+	ctl.rdb.HSet(ctx, taskKey, "start_time", req.StartTime)
+	ctl.rdb.HSet(ctx, taskKey, "end_time", req.EndTime)
 	ctl.rdb.Expire(ctx, taskKey, 24*time.Hour)
 
 	body, _ := json.Marshal(map[string]string{"task_id": taskID})

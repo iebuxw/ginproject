@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"ginproject/internal/dao"
 	"ginproject/internal/service"
 	"ginproject/internal/ws"
 
@@ -78,6 +79,9 @@ func (w *ExportWorker) processTask(taskID string) {
 
 	userIDStr, _ := w.rdb.HGet(ctx, taskKey, "user_id").Result()
 	method, _ := w.rdb.HGet(ctx, taskKey, "method").Result()
+	keyword, _ := w.rdb.HGet(ctx, taskKey, "keyword").Result()
+	startTime, _ := w.rdb.HGet(ctx, taskKey, "start_time").Result()
+	endTime, _ := w.rdb.HGet(ctx, taskKey, "end_time").Result()
 
 	var uid uint
 	fmt.Sscanf(userIDStr, "%d", &uid)
@@ -85,7 +89,14 @@ func (w *ExportWorker) processTask(taskID string) {
 	filename := fmt.Sprintf("操作日志_%s.xlsx", time.Now().Format("20060102_150405"))
 	filePath := filepath.Join(exportDir, taskID+".xlsx")
 
-	err := w.buildExcel(method, filePath)
+	filter := dao.LogFilter{
+		Method:    method,
+		Keyword:   keyword,
+		StartTime: startTime,
+		EndTime:   endTime,
+	}
+
+	err := w.buildExcel(filter, filePath)
 	if err != nil {
 		log.Printf("导出任务 %s 失败: %v", taskID, err)
 		w.rdb.HSet(ctx, taskKey, "status", "failed")
@@ -110,7 +121,7 @@ func (w *ExportWorker) processTask(taskID string) {
 	})
 }
 
-func (w *ExportWorker) buildExcel(method, filePath string) error {
+func (w *ExportWorker) buildExcel(filter dao.LogFilter, filePath string) error {
 	f := excelize.NewFile()
 	defer f.Close()
 
@@ -133,7 +144,7 @@ func (w *ExportWorker) buildExcel(method, filePath string) error {
 	row := 2
 
 	for {
-		logs, err := w.logService.FindBatch("", method, offset, batchSize)
+		logs, err := w.logService.FindBatch(filter, offset, batchSize)
 		if err != nil {
 			return err
 		}

@@ -4,7 +4,7 @@
       <div slot="header"><span>操作日志</span></div>
       <el-form :inline="true">
         <el-form-item>
-          <el-input v-model="filters.keyword" placeholder="搜索路径/参数/响应" clearable style="width:220px" @keyup.enter.native="fetchData"></el-input>
+          <el-input v-model="filters.keyword" placeholder="搜索路径/参数" clearable style="width:220px" @keyup.enter.native="fetchData"></el-input>
         </el-form-item>
         <el-form-item>
           <el-select v-model="filters.method" placeholder="请求方式" clearable @change="fetchData">
@@ -119,7 +119,12 @@ export default {
     exportExcel() {
       this.exporting = true
       this.downloadUrl = null
-      exportLogs({ method: this.filters.method }).then(res => {
+      const payload = { method: this.filters.method, keyword: this.filters.keyword }
+      if (this.filters.dateRange && this.filters.dateRange.length === 2) {
+        payload.start_time = this.filters.dateRange[0]
+        payload.end_time = this.filters.dateRange[1]
+      }
+      exportLogs(payload).then(res => {
         this.currentTaskId = res.data.task_id
       }).catch(() => {
         this.exporting = false

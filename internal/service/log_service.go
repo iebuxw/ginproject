@@ -35,6 +35,6 @@ func (s *LogService) FindAll(module, method string) ([]model.OperationLog, error
 	return s.logDAO.FindAll(module, method)
 }
 
-func (s *LogService) FindBatch(module, method string, offset, limit int) ([]model.OperationLog, error) {
-	return s.logDAO.FindBatch(module, method, offset, limit)
+func (s *LogService) FindBatch(f dao.LogFilter, offset, limit int) ([]model.OperationLog, error) {
+	return s.logDAO.FindBatch(f, offset, limit)
 }

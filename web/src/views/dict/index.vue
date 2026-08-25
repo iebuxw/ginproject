@@ -18,6 +18,12 @@
               <el-tag :type="s.row.status === 1 ? 'success' : 'info'" size="mini">{{ s.row.status === 1 ? '启' : '禁' }}</el-tag>
             </template>
           </el-table-column>
+          <el-table-column label="操作" width="130" align="center">
+            <template slot-scope="s">
+              <el-button size="mini" @click="openTypeDialog(s.row)">编辑</el-button>
+              <el-button size="mini" type="danger" @click="handleDeleteType(s.row)">删除</el-button>
+            </template>
+          </el-table-column>
         </el-table>
         <el-pagination small @current-change="typePageChange" :current-page="typePage" :page-size="typePageSize" :total="typeTotal" layout="total, prev, pager, next" style="margin-top:10px;text-align:right"></el-pagination>
       </el-card>
@@ -171,6 +177,17 @@ export default {
       }
       this.typeDialogVisible = false
       this.$message.success(this.typeIsEdit ? '编辑成功' : '新增成功')
+      this.fetchTypes()
+    },
+    async handleDeleteType(row) {
+      const res = await getDictData({ dict_type_id: row.id, page_size: 1 })
+      if (res.data.total > 0) {
+        this.$message.warning('该字典类型下还有数据，请先删除数据项')
+        return
+      }
+      await this.$confirm('确认删除该字典类型?', '提示', { type: 'warning' })
+      await deleteDictType(row.id)
+      this.$message.success('删除成功')
       this.fetchTypes()
     },
     // ========== 字典数据 ==========

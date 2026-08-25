@@ -53,3 +53,35 @@ npm run build                          # 构建到 web/dist/
 docker compose up -d --build nginx
 docker compose up -d                   # 启动全部
 ```
+
+## 数据字典
+
+管理系统中的下拉框选项、状态码、类型枚举等配置数据。
+
+### 功能
+
+- **字典类型**：定义字典分类（如性别、状态），code 唯一
+- **字典数据**：每个类型下的具体选项（如 男=1，女=2）
+- **前端路由**：`/system/dict-type`，左右分栏布局
+
+### API
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| GET/POST | `/api/dict-types` | 字典类型列表/新增 |
+| GET/PUT/DELETE | `/api/dict-types/:id` | 字典类型详情/编辑/删除 |
+| GET/POST | `/api/dict-data` | 字典数据列表/新增 |
+| GET/PUT/DELETE | `/api/dict-data/:id` | 字典数据详情/编辑/删除 |
+
+### 使用示例
+
+```js
+// 前端获取字典数据（用于下拉框）
+import { getDictData } from '@/api/dict'
+const res = await getDictData({ dict_type_id: 1 })
+const options = res.data.list // [{label:"男", value:"1"}, ...]
+```
+
+### 权限
+
+`dict:list`、`dict:query`、`dict:add`、`dict:edit`、`dict:delete`

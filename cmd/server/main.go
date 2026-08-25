@@ -48,7 +48,7 @@ func main() {
 	})
 
 	// AutoMigrate
-	db.AutoMigrate(&model.User{}, &model.Role{}, &model.Menu{}, &model.OperationLog{}, &model.LoginLog{})
+	db.AutoMigrate(&model.User{}, &model.Role{}, &model.Menu{}, &model.OperationLog{}, &model.LoginLog{}, &model.DictType{}, &model.DictData{})
 
 	// Elasticsearch（学习用；失败不 fatal：写入跳过、查询回退 MySQL）
 	esClient, esErr := es.NewClient(&cfg.Elasticsearch)
@@ -69,6 +69,8 @@ func main() {
 	menuDAO := dao.NewMenuDAO(db)
 	logDAO := dao.NewLogDAO(db)
 	loginLogDAO := dao.NewLoginLogDAO(db)
+	dictTypeDAO := dao.NewDictTypeDAO(db)
+	dictDataDAO := dao.NewDictDataDAO(db)
 
 	// Service
 	authService := service.NewAuthService(userDAO, rdb, cfg)
@@ -78,6 +80,8 @@ func main() {
 	logService := service.NewLogService(logDAO, logRepo)
 	loginLogService := service.NewLoginLogService(loginLogDAO)
 	alertMailService := service.NewAlertMailService(cfg)
+	dictTypeService := service.NewDictTypeService(dictTypeDAO, dictDataDAO)
+	dictDataService := service.NewDictDataService(dictDataDAO)
 
 	// RabbitMQ
 	amqpConn, err := amqp091.Dial(cfg.RabbitMQ.DSN())
@@ -111,12 +115,14 @@ func main() {
 	menuCtrl := controller.NewMenuController(menuService)
 	logCtrl := controller.NewLogController(logService, rdb, publishCh)
 	loginLogCtrl := controller.NewLoginLogController(loginLogService)
+	dictTypeCtrl := controller.NewDictTypeController(dictTypeService)
+	dictDataCtrl := controller.NewDictDataController(dictDataService)
 
 	// 默认数据初始化
 	seedDefaultData(db)
 
 	// Router
-	r := router.Setup(cfg, authCtrl, userCtrl, roleCtrl, menuCtrl, logCtrl, loginLogCtrl, wsCtrl, authService, userDAO, menuDAO, logDAO, logRepo)
+	r := router.Setup(cfg, authCtrl, userCtrl, roleCtrl, menuCtrl, logCtrl, loginLogCtrl, wsCtrl, authService, userDAO, menuDAO, logDAO, logRepo, dictTypeCtrl, dictDataCtrl)
 
 	log.Printf("Server running on :%s", cfg.Server.Port)
 	if err := r.Run(":" + cfg.Server.Port); err != nil {
@@ -165,6 +171,14 @@ func seedDefaultData(db *gorm.DB) {
 		{Name: "日志导出", Permission: "log:export", Type: 3, Sort: 2, Status: 1, ParentID: 6},
 		// 登录日志按钮 (ParentID: 7)
 		{Name: "日志列表", Permission: "login-log:list", Type: 3, Sort: 1, Status: 1, ParentID: 7},
+		// 数据字典 (ID: 8)
+		{Name: "数据字典", Icon: "el-icon-notebook-2", Path: "/system/dict-type", Type: 1, Sort: 3, Status: 1},
+		// 数据字典按钮 (ParentID: 8)
+		{Name: "字典列表", Permission: "dict:list", Type: 3, Sort: 1, Status: 1, ParentID: 8},
+		{Name: "字典查询", Permission: "dict:query", Type: 3, Sort: 2, Status: 1, ParentID: 8},
+		{Name: "字典新增", Permission: "dict:add", Type: 3, Sort: 3, Status: 1, ParentID: 8},
+		{Name: "字典编辑", Permission: "dict:edit", Type: 3, Sort: 4, Status: 1, ParentID: 8},
+		{Name: "字典删除", Permission: "dict:delete", Type: 3, Sort: 5, Status: 1, ParentID: 8},
 	}
 	for i := range menus {
 		db.Create(&menus[i])

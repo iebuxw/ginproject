@@ -5,7 +5,8 @@ const componentMap = {
   '/system/role': () => import('@/views/role/index.vue'),
   '/system/menu': () => import('@/views/menu/index.vue'),
   '/system/log': () => import('@/views/log/index.vue'),
-  '/system/login-log': () => import('@/views/loginlog/index.vue')
+  '/system/login-log': () => import('@/views/loginlog/index.vue'),
+  '/system/dict-type': () => import('@/views/dict/index.vue')
 }
 
 const state = {

@@ -29,6 +29,8 @@ func Setup(
 	menuDAO *dao.MenuDAO,
 	logDAO *dao.LogDAO,
 	logRepo *es.LogRepo,
+	dictTypeCtrl *controller.DictTypeController,
+	dictDataCtrl *controller.DictDataController,
 ) *gin.Engine {
 	r := gin.Default()
 	r.Use(middleware.CORS())
@@ -95,6 +97,32 @@ func Setup(
 			middleware.RequirePerm("log:export"), middleware.RBAC(menuDAO), logCtrl.ExportStatus)
 		authorized.GET("/logs/download/:taskID",
 			middleware.RequirePerm("log:export"), middleware.RBAC(menuDAO), logCtrl.Download)
+
+		// 数据字典 - 类型管理
+		authorized.GET("/dict-types",
+			middleware.RequirePerm("dict:list"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), dictTypeCtrl.List)
+		authorized.GET("/dict-types/:id",
+			middleware.RequirePerm("dict:query"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), dictTypeCtrl.Get)
+		authorized.POST("/dict-types",
+			middleware.RequirePerm("dict:add"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), dictTypeCtrl.Create)
+		authorized.PUT("/dict-types/:id",
+			middleware.RequirePerm("dict:edit"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), dictTypeCtrl.Update)
+		authorized.DELETE("/dict-types/:id",
+			middleware.RequirePerm("dict:delete"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), dictTypeCtrl.Delete)
+
+		// 数据字典 - 数据管理
+		authorized.GET("/dict-data",
+			middleware.RequirePerm("dict:list"), middleware.RBAC(menuDAO), dictDataCtrl.List)
+		authorized.GET("/dict-data/by-code/:code",
+			middleware.RequirePerm("dict:list"), middleware.RBAC(menuDAO), dictDataCtrl.GetByCode)
+		authorized.GET("/dict-data/:id",
+			middleware.RequirePerm("dict:query"), middleware.RBAC(menuDAO), dictDataCtrl.Get)
+		authorized.POST("/dict-data",
+			middleware.RequirePerm("dict:add"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), dictDataCtrl.Create)
+		authorized.PUT("/dict-data/:id",
+			middleware.RequirePerm("dict:edit"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), dictDataCtrl.Update)
+		authorized.DELETE("/dict-data/:id",
+			middleware.RequirePerm("dict:delete"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), dictDataCtrl.Delete)
 	}
 
 	// WebSocket

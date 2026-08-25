@@ -100,6 +100,7 @@ User ──N:M── Role ──N:M── Menu（Menu.Permission 字段，如 "u
 - `OperationLog.Module/Action` 中间件**未填充，恒为空**（业务需要时得自己补）
 - Redis 是 `redis:3.2-alpine`，**不支持 HSET 一次多字段**（4.0+ 才行），代码用单字段 `HSet` 调用，新增代码保持此风格
 - 手动用 mysql CLI 插入中文需加 `--default-character-set=utf8mb4`，否则乱码
+- **提交习惯**：改代码后按功能模块分批提交，不同功能不混在一个 commit。例如：修复字典操作列一个 commit，新增用户描述字段一个 commit。
 - WebSocket `/api/ws` 是**公开路由**（不走 JWT）；nginx 需转发 Upgrade 头（已在 `docker/nginx.conf` 配置）
 
 ## 操作日志 ES 全文检索（学习功能）

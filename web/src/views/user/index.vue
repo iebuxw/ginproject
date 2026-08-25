@@ -11,6 +11,7 @@
         <el-table-column prop="username" label="用户名"></el-table-column>
         <el-table-column prop="email" label="邮箱"></el-table-column>
         <el-table-column prop="phone" label="手机号"></el-table-column>
+        <el-table-column prop="description" label="描述" show-overflow-tooltip></el-table-column>
         <el-table-column label="状态" width="80">
           <template slot-scope="s">
             <el-tag :type="s.row.status === 1 ? 'success' : 'danger'">{{ s.row.status === 1 ? '启用' : '禁用' }}</el-tag>
@@ -35,6 +36,7 @@
         <el-form-item label="密码"><el-input v-model="form.password" type="password" :placeholder="isEdit ? '留空不修改' : ''"></el-input></el-form-item>
         <el-form-item label="邮箱"><el-input v-model="form.email"></el-input></el-form-item>
         <el-form-item label="手机号"><el-input v-model="form.phone"></el-input></el-form-item>
+        <el-form-item label="描述"><el-input v-model="form.description"></el-input></el-form-item>
         <el-form-item label="状态"><el-switch v-model="form.status" :active-value="1" :inactive-value="0"></el-switch></el-form-item>
         <el-form-item label="角色">
           <el-checkbox-group v-model="form.role_ids">
@@ -54,7 +56,7 @@ export default {
     return {
       list: [], page: 1, pageSize: 10, total: 0, keyword: '',
       dialogVisible: false, isEdit: false,
-      form: { username: '', password: '', email: '', phone: '', status: 1, role_ids: [] },
+      form: { username: '', password: '', email: '', phone: '', description: '', status: 1, role_ids: [] },
       allRoles: []
     }
   },
@@ -75,7 +77,7 @@ export default {
         this.form = { ...row, password: '', role_ids: (row.roles || []).map(r => r.id) }
       } else {
         this.isEdit = false
-        this.form = { username: '', password: '', email: '', phone: '', status: 1, role_ids: [] }
+        this.form = { username: '', password: '', email: '', phone: '', description: '', status: 1, role_ids: [] }
       }
       this.dialogVisible = true
     },

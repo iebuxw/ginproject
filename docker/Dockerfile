@@ -23,6 +23,7 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 WORKDIR /app
 COPY --from=builder /build/server .
 COPY .env .env
+COPY migrations/ ./migrations/
 
 EXPOSE 8000
 CMD ["./server"]

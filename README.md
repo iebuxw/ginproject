@@ -9,7 +9,7 @@ docker compose up -d           # 启动所有服务
 ```
 
 - 访问地址：http://localhost:8080（nginx → Vue SPA，`/api` 代理到 go-app:8000）
-- 默认账号：`admin` / `admin`
+- 默认账号：`admin` / `123456`
 
 ## 数据库连接命令
 
@@ -53,6 +53,35 @@ npm run build                          # 构建到 web/dist/
 docker compose up -d --build nginx
 docker compose up -d                   # 启动全部
 ```
+
+## 数据库迁移
+
+使用 [golang-migrate](https://github.com/golang-migrate/migrate) 管理数据库 schema 和种子数据，启动时自动执行未运行的迁移。
+
+### 迁移文件结构
+
+```
+migrations/
+  000001_create_schema.up.sql          # 建表（10张表）
+  000001_create_schema.down.sql        # 删表（回滚）
+  000002_seed_menus.up.sql             # 菜单种子数据（31条）
+  000002_seed_menus.down.sql           # 清空菜单
+  000003_seed_admin_and_dict.up.sql    # admin用户、角色、字典种子
+  000003_seed_admin_and_dict.down.sql  # 清空用户/角色/字典
+```
+
+### 新增迁移
+
+1. 在 `migrations/` 目录创建新的 `.up.sql` 和 `.down.sql` 文件
+2. 文件名递增，如 `000004_add_xxx.up.sql`
+3. 重启应用自动执行：`docker compose up -d --build go-app`
+
+### 迁移规范
+
+- 建表用 `CREATE TABLE IF NOT EXISTS`（幂等）
+- 种子数据用 `INSERT IGNORE`（已存在则跳过）
+- 种子数据必须指定 `id` 列，防止自动分配导致重复
+- `down.sql` 按外键依赖逆序删除
 
 ## 数据字典
 

@@ -27,7 +27,7 @@ docker compose up -d                   # 启动全部
 - 固定端口：go-app **8000**，nginx **8080**，容器内 mysql **3306**/宿主机 **3307**，redis 容器内 **6379**/宿主机 **6380**，rabbitmq **5672**（管理台 15672），elasticsearch **9200**，kibana **5601**
 - 默认账号：`admin` / `admin`（**数据库里 admin 密码实际为 `123456`，以 DB 为准；如需登录直接用 `123456`**）
 - **红线：未经用户明确同意，不得擅自修改/重置用户数据或密码**。验证登录受阻时应先询问用户，而非直接改数据库。
-- **无测试、无 lint/typecheck 配置**，也没有 CI。DDL 由 `AutoMigrate` 自动建表，无迁移文件。
+- **无测试、无 lint/typecheck 配置**，也没有 CI。DDL 和种子数据由 golang-migrate 管理（`migrations/` 目录），启动时自动执行。
 
 ## 本地运行须知（重要）
 
@@ -40,7 +40,7 @@ docker compose up -d                   # 启动全部
 ## 架构
 
 ```
-cmd/server/main.go         # 入口：手动组装依赖链（无 DI 框架），AutoMigrate + 种子数据
+cmd/server/main.go         # 入口：手动组装依赖链（无 DI 框架），启动时执行数据库迁移
 internal/
   config/                  # Viper 读 .env
   router/                  # Gin 路由注册 + 中间件链
@@ -57,6 +57,29 @@ internal/
 
 分层调用惯例（无接口抽象，直接依赖具体类型）：
 router → middleware → controller → service → dao → model。新增功能照此链在 `main.go` 逐层 new 注入。
+
+## 数据库迁移（golang-migrate）
+
+DDL 和种子数据由 golang-migrate 管理，`migrations/` 目录下存放版本化 SQL 文件：
+
+```
+migrations/
+  000001_create_schema.up.sql          # 建表（10张表）
+  000001_create_schema.down.sql        # 删表（回滚）
+  000002_seed_menus.up.sql             # 菜单种子数据（31条）
+  000002_seed_menus.down.sql           # 清空菜单
+  000003_seed_admin_and_dict.up.sql    # admin用户、角色、字典种子
+  000003_seed_admin_and_dict.down.sql  # 清空用户/角色/字典
+```
+
+**启动时自动执行**：`main.go` 中 `runMigrations(cfg)` 会自动执行未运行的迁移。
+
+**新增迁移文件**：在 `migrations/` 目录创建新的 `.up.sql` 和 `.down.sql` 文件，文件名递增（如 `000004_xxx.up.sql`）。
+
+**幂等处理**：
+- 建表用 `CREATE TABLE IF NOT EXISTS`
+- 种子数据用 `INSERT IGNORE`，已存在则跳过
+- 种子数据必须指定 `id` 列，防止自动分配导致重复
 
 ## 权限模型（RBAC）
 

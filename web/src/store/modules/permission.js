@@ -7,7 +7,8 @@ const componentMap = {
   '/system/log': () => import('@/views/log/index.vue'),
   '/system/login-log': () => import('@/views/loginlog/index.vue'),
   '/system/dict-type': () => import('@/views/dict/index.vue'),
-  '/system/task': () => import('@/views/task/index.vue')
+  '/system/task': () => import('@/views/task/index.vue'),
+  '/system/task-logs': () => import('@/views/task/logs.vue')
 }
 
 const state = {

@@ -41,6 +41,9 @@ func Setup(
 	// 公开路由
 	api.POST("/auth/login", authCtrl.Login)
 
+	// 日志清理（公开：定时任务调度器无 JWT，靠 secret 参数防滥用）
+	api.POST("/logs/cleanup", logCtrl.Cleanup)
+
 	// 需登录（JWT 中间件在 group 级别）
 	authorized := api.Group("")
 	authorized.Use(middleware.JWTAuth(cfg, authService, userDAO))

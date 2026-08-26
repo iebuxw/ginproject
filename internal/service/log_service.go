@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"log"
+	"time"
 
 	"ginproject/internal/dao"
 	"ginproject/internal/es"
@@ -37,4 +39,26 @@ func (s *LogService) FindAll(module, method string) ([]model.OperationLog, error
 
 func (s *LogService) FindBatch(f dao.LogFilter, offset, limit int) ([]model.OperationLog, error) {
 	return s.logDAO.FindBatch(f, offset, limit)
+}
+
+// Cleanup 分批删除保留天数之外的操作日志，并同步清理 ES；ES 不可用仅告警不阻断
+func (s *LogService) Cleanup(days int) (int64, error) {
+	before := time.Now().AddDate(0, 0, -days)
+	var total int64
+	for {
+		n, err := s.logDAO.DeleteOlderThan(before, 1000)
+		if err != nil {
+			return total, err
+		}
+		total += n
+		if n == 0 {
+			break
+		}
+	}
+	if n, err := s.logRepo.DeleteByTime(before); err != nil {
+		log.Printf("ES 清理旧操作日志失败（已降级仅清 MySQL）: %v", err)
+	} else if n > 0 {
+		log.Printf("ES 已清理 %d 条旧操作日志", n)
+	}
+	return total, nil
 }

@@ -128,10 +128,9 @@ User ──N:M── Role ──N:M── Menu
 ### 定时任务（CronTask）
 
 - `cron_tasks`（任务）+ `cron_task_executions`（执行日志）两张表；Cron 表达式为 **6 段（秒 分 时 日 月 周）**，非标准 5 段
-- 任务两种模式：`command` 非空走**预定义命令**（注册表 `scheduler/commands.go`，提供 name/label/method/url/headers，任务的 url/headers/body 被忽略）；为空走自定义 HTTP。前端编辑对话框命令下拉中 `_custom` 即自定义模式，命令列表来自 `GET /api/cron-tasks/commands`
+- 任务两种模式：`command` 非空走**预定义命令**（注册表 `scheduler/commands.go`，提供 name/label/handler，进程内直接调用，任务的 url/headers/body 被忽略）；为空走自定义 HTTP。前端编辑对话框命令下拉中 `_custom` 即自定义模式，命令列表来自 `GET /api/cron-tasks/commands`
 - 任务增删改/启停后由 Service 调 `Reload()` 全量重建（热更新）；`running` sync.Map 防重叠，上次未执行完记跳过；页面「立即执行」走 `RunNow`，trigger=manual
 - 执行状态：0=成功，1=失败，2=跳过；响应体截断至 2000 字符
-- 种子清理任务的密钥占位符：headers 中的 `__LOG_CLEANUP_SECRET__`，启动时 `main.go` 调 `InjectCleanupSecret` 替换为 `.env` 实际值
 - 前端 `web/src/views/task/`（index.vue 任务管理 + logs.vue 执行日志），权限点 `cron:list/query/add/edit/delete/run/log`
 
 ### WebSocket
@@ -181,7 +180,7 @@ User ──N:M── Role ──N:M── Menu
 - 不改变对外契约：路由、请求/响应 JSON 字段、权限点、菜单树结构保持兼容
 - 不修改已应用的迁移文件（migrations/），只能新增成对迁移
 - 不删除看似无用的历史代码/字段/路由，删除前先询问
-- 自动化验证：改动后必须执行编译/构建检查（如 go build / npm run build），并运行受影响的单元测试/集成测试。生成手工回归测试建议清单，交由用户验证
+- 自动化验证：改动后必须执行编译/构建检查（如 go build / npm run build），并运行受影响的单元测试/集成测试。并对受影响接口手工回归。无法手工回归测试的，生成手工回归测试建议清单，交由用户验证
 
 ### 复用优先（防重复造轮子）
 

@@ -6,6 +6,7 @@ import "time"
 type CronTask struct {
 	ID             uint      `gorm:"primaryKey" json:"id"`
 	Name           string    `gorm:"size:64;not null" json:"name"`
+	Command        string    `gorm:"size:64;default:''" json:"command"`
 	URL            string    `gorm:"size:255;not null" json:"url"`
 	Method         string    `gorm:"size:8;not null;default:GET" json:"method"`
 	Headers        string    `gorm:"type:text" json:"headers"`

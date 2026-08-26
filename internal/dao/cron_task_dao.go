@@ -35,7 +35,7 @@ func (d *CronTaskDAO) FindPage(page, pageSize int, keyword string) ([]model.Cron
 	var total int64
 	q := d.db.Model(&model.CronTask{})
 	if keyword != "" {
-		q = q.Where("name LIKE ? OR url LIKE ?", "%"+keyword+"%", "%"+keyword+"%")
+		q = q.Where("name LIKE ? OR url LIKE ? OR command LIKE ?", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%")
 	}
 	q.Count(&total)
 	err := q.Select("cron_tasks.*, COALESCE((SELECT status FROM cron_task_executions WHERE task_id = cron_tasks.id ORDER BY id DESC LIMIT 1), -1) AS last_exec_status").

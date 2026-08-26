@@ -123,7 +123,7 @@ func main() {
 	userCtrl := controller.NewUserController(userService)
 	roleCtrl := controller.NewRoleController(roleService)
 	menuCtrl := controller.NewMenuController(menuService)
-	logCtrl := controller.NewLogController(logService, rdb, publishCh)
+	logCtrl := controller.NewLogController(logService, loginLogService, rdb, publishCh, cfg.LogCleanupSecret)
 	loginLogCtrl := controller.NewLoginLogController(loginLogService)
 	dictTypeCtrl := controller.NewDictTypeController(dictTypeService)
 	dictDataCtrl := controller.NewDictDataController(dictDataService)

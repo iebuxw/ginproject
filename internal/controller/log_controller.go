@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -20,13 +21,15 @@ import (
 )
 
 type LogController struct {
-	logService *service.LogService
-	rdb        *redis.Client
-	amqpCh     *amqp091.Channel
+	logService      *service.LogService
+	loginLogService *service.LoginLogService
+	rdb             *redis.Client
+	amqpCh          *amqp091.Channel
+	cleanupSecret   string
 }
 
-func NewLogController(logService *service.LogService, rdb *redis.Client, amqpCh *amqp091.Channel) *LogController {
-	return &LogController{logService: logService, rdb: rdb, amqpCh: amqpCh}
+func NewLogController(logService *service.LogService, loginLogService *service.LoginLogService, rdb *redis.Client, amqpCh *amqp091.Channel, cleanupSecret string) *LogController {
+	return &LogController{logService: logService, loginLogService: loginLogService, rdb: rdb, amqpCh: amqpCh, cleanupSecret: cleanupSecret}
 }
 
 // List 查询操作日志
@@ -188,4 +191,51 @@ func (ctl *LogController) Download(c *gin.Context) {
 	c.File(filePath)
 
 	os.Remove(filePath)
+}
+
+// Cleanup 定时清理旧日志（公开路由，secret 校验）
+// @Summary 清理旧日志
+// @Description 按保留天数分批删除旧日志（操作日志/登录日志），ES 同步清理。供定时任务调用，需携带 secret
+// @Tags 操作日志
+// @Produce json
+// @Param secret query string true "清理密钥（与 LOG_CLEANUP_SECRET 比对）"
+// @Param days query int true "保留天数（删除创建时间早于 now-days 的日志）"
+// @Param scope query string false "清理范围：operation/login/all，默认 all"
+// @Success 200 {object} utils.Response{data=object{operation_deleted=int,login_deleted=int}} "成功"
+// @Failure 200 {object} utils.Response "参数非法"
+// @Router /logs/cleanup [post]
+func (ctl *LogController) Cleanup(c *gin.Context) {
+	secret := c.Query("secret")
+	if ctl.cleanupSecret == "" || secret != ctl.cleanupSecret {
+		utils.ErrorWithStatus(c, http.StatusForbidden, 403, "密钥无效")
+		return
+	}
+	days, err := strconv.Atoi(c.DefaultQuery("days", "30"))
+	if err != nil || days < 1 || days > 3650 {
+		utils.Error(c, 400, "days 参数非法（1~3650）")
+		return
+	}
+	scope := c.DefaultQuery("scope", "all")
+	if scope != "operation" && scope != "login" && scope != "all" {
+		utils.Error(c, 400, "scope 参数非法（operation/login/all）")
+		return
+	}
+	result := gin.H{}
+	if scope == "operation" || scope == "all" {
+		n, err := ctl.logService.Cleanup(days)
+		if err != nil {
+			utils.Error(c, 500, "操作日志清理失败: "+err.Error())
+			return
+		}
+		result["operation_deleted"] = n
+	}
+	if scope == "login" || scope == "all" {
+		n, err := ctl.loginLogService.Cleanup(days)
+		if err != nil {
+			utils.Error(c, 500, "登录日志清理失败: "+err.Error())
+			return
+		}
+		result["login_deleted"] = n
+	}
+	utils.Success(c, result)
 }

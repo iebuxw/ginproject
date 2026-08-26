@@ -7,13 +7,14 @@ import (
 )
 
 type Config struct {
-	Server        ServerConfig
-	Database      DatabaseConfig
-	Redis         RedisConfig
-	JWT           JWTConfig
-	RabbitMQ      RabbitMQConfig
-	Mail          MailConfig
-	Elasticsearch ElasticsearchConfig
+	Server           ServerConfig
+	Database         DatabaseConfig
+	Redis            RedisConfig
+	JWT              JWTConfig
+	RabbitMQ         RabbitMQConfig
+	Mail             MailConfig
+	Elasticsearch    ElasticsearchConfig
+	LogCleanupSecret string
 }
 
 type ServerConfig struct{ Port string }
@@ -112,5 +113,6 @@ func Load() *Config {
 			Username: viper.GetString("ES_USERNAME"),
 			Password: viper.GetString("ES_PASSWORD"),
 		},
+		LogCleanupSecret: viper.GetString("LOG_CLEANUP_SECRET"),
 	}
 }

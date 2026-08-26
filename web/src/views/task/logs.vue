@@ -27,14 +27,21 @@
       <!-- 表格 -->
       <el-table :data="list" border>
         <el-table-column prop="id" label="ID" width="70"></el-table-column>
-        <el-table-column label="任务名称" width="160">
+        <el-table-column label="任务名称" min-width="120">
           <template slot-scope="s">
             {{ taskName(s.row.task_id) }}
           </template>
         </el-table-column>
-        <el-table-column label="命令" width="140">
+        <el-table-column label="命令" min-width="100">
           <template slot-scope="s">
             {{ taskCommand(s.row.task_id) || '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column label="触发方式" width="90">
+          <template slot-scope="s">
+            <el-tag v-if="s.row.trigger === 'cron'" size="mini">定时</el-tag>
+            <el-tag v-else-if="s.row.trigger === 'manual'" type="warning" size="mini">手动</el-tag>
+            <el-tag v-else size="mini">{{ s.row.trigger }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="状态" width="80">
@@ -49,11 +56,13 @@
             {{ (s.row.duration_ms / 1000).toFixed(1) }}
           </template>
         </el-table-column>
-        <el-table-column prop="created_at" label="执行时间" width="170"></el-table-column>
-        <el-table-column label="操作" width="150">
+        <el-table-column prop="created_at" label="执行时间" min-width="160"></el-table-column>
+        <el-table-column label="操作" width="180">
           <template slot-scope="s">
-            <el-button size="mini" type="info" @click="viewOutput(s.row)">查看输出</el-button>
-            <el-button size="mini" type="danger" @click="handleDelete(s.row.id)">删除</el-button>
+            <div style="white-space:nowrap">
+              <el-button size="mini" type="info" @click="viewOutput(s.row)">查看输出</el-button>
+              <el-button size="mini" type="danger" @click="handleDelete(s.row.id)">删除</el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>

@@ -16,6 +16,8 @@ definitions:
     properties:
       body:
         type: string
+      command:
+        type: string
       created_at:
         type: string
       cron:
@@ -189,6 +191,13 @@ definitions:
       updated_at:
         type: string
       username:
+        type: string
+    type: object
+  scheduler.CommandOption:
+    properties:
+      label:
+        type: string
+      name:
         type: string
     type: object
   utils.Response:
@@ -522,6 +531,82 @@ paths:
       security:
       - BearerAuth: []
       summary: 启停定时任务
+      tags:
+      - 定时任务
+  /cron-tasks/commands:
+    get:
+      description: 返回所有可用的预定义命令（名称+标识），供前端下拉使用
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/scheduler.CommandOption'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 获取预定义命令列表
+      tags:
+      - 定时任务
+  /cron-tasks/executions:
+    get:
+      description: 分页查询所有任务的执行日志，支持按任务/状态/时间范围筛选
+      parameters:
+      - description: 任务 ID
+        in: query
+        name: task_id
+        type: integer
+      - description: 状态（0成功/1失败/2跳过）
+        in: query
+        name: status
+        type: integer
+      - description: 开始日期 YYYY-MM-DD
+        in: query
+        name: start_time
+        type: string
+      - description: 结束日期 YYYY-MM-DD
+        in: query
+        name: end_time
+        type: string
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  properties:
+                    list:
+                      items:
+                        $ref: '#/definitions/model.CronTaskExecution'
+                      type: array
+                    total:
+                      type: integer
+                  type: object
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 获取全部执行日志
       tags:
       - 定时任务
   /dict-data:

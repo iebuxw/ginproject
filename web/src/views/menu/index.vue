@@ -21,8 +21,10 @@
         </el-table-column>
         <el-table-column label="操作" width="180">
           <template slot-scope="s">
-            <el-button size="mini" @click="openDialog(s.row)">编辑</el-button>
-            <el-button size="mini" type="danger" @click="handleDelete(s.row.id)">删除</el-button>
+            <div style="white-space:nowrap">
+              <el-button size="mini" @click="openDialog(s.row)">编辑</el-button>
+              <el-button size="mini" type="danger" @click="handleDelete(s.row.id)">删除</el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>

@@ -29,11 +29,13 @@
             <span v-else>-</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="220">
+        <el-table-column label="操作" width="260">
           <template slot-scope="s">
-            <el-button size="mini" @click="openDialog(s.row)">编辑</el-button>
-            <el-button size="mini" type="primary" @click="handleRun(s.row.id)">立即执行</el-button>
-            <el-button size="mini" type="danger" @click="handleDelete(s.row.id)">删除</el-button>
+            <div style="white-space:nowrap">
+              <el-button size="mini" @click="openDialog(s.row)">编辑</el-button>
+              <el-button size="mini" type="primary" @click="handleRun(s.row.id)">立即执行</el-button>
+              <el-button size="mini" type="danger" @click="handleDelete(s.row.id)">删除</el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>

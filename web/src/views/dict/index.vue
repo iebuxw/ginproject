@@ -18,10 +18,12 @@
               <el-tag :type="s.row.status === 1 ? 'success' : 'info'" size="mini">{{ s.row.status === 1 ? '启' : '禁' }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="130" align="center">
+          <el-table-column label="操作" width="180" align="center">
             <template slot-scope="s">
-              <el-button size="mini" @click="openTypeDialog(s.row)">编辑</el-button>
-              <el-button size="mini" type="danger" @click="handleDeleteType(s.row)">删除</el-button>
+              <div style="white-space:nowrap">
+                <el-button size="mini" @click="openTypeDialog(s.row)">编辑</el-button>
+                <el-button size="mini" type="danger" @click="handleDeleteType(s.row)">删除</el-button>
+              </div>
             </template>
           </el-table-column>
         </el-table>
@@ -47,10 +49,12 @@
             </template>
           </el-table-column>
           <el-table-column prop="remark" label="备注" show-overflow-tooltip></el-table-column>
-          <el-table-column label="操作" width="130" align="center">
+          <el-table-column label="操作" width="180" align="center">
             <template slot-scope="s">
-              <el-button size="mini" @click="openDataDialog(s.row)">编辑</el-button>
-              <el-button size="mini" type="danger" @click="handleDeleteData(s.row.id)">删除</el-button>
+              <div style="white-space:nowrap">
+                <el-button size="mini" @click="openDataDialog(s.row)">编辑</el-button>
+                <el-button size="mini" type="danger" @click="handleDeleteData(s.row.id)">删除</el-button>
+              </div>
             </template>
           </el-table-column>
         </el-table>

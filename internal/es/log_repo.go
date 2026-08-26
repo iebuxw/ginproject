@@ -8,6 +8,7 @@ import (
 	"html"
 	"log"
 	"strings"
+	"time"
 
 	"ginproject/internal/model"
 
@@ -177,4 +178,44 @@ func sanitizeHighlight(s string) string {
 	s = strings.ReplaceAll(s, "\x00em\x00", "<em>")
 	s = strings.ReplaceAll(s, "\x00/em\x00", "</em>")
 	return s
+}
+
+// DeleteByTime 删除创建时间早于 before 的操作日志文档（delete_by_query），返回删除条数
+func (r *LogRepo) DeleteByTime(before time.Time) (int64, error) {
+	if r.cli == nil {
+		return 0, fmt.Errorf("ES 未启用")
+	}
+	body := map[string]interface{}{
+		"query": map[string]interface{}{
+			"range": map[string]interface{}{
+				"created_at": map[string]interface{}{
+					"lt": before.Format("2006-01-02 15:04:05"),
+				},
+			},
+		},
+	}
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(body); err != nil {
+		return 0, err
+	}
+	refresh := true
+	res, err := (&esapi.DeleteByQueryRequest{
+		Index:   []string{LogIndex},
+		Body:    bytes.NewReader(buf.Bytes()),
+		Refresh: &refresh,
+	}).Do(context.Background(), r.cli.RawClient())
+	if err != nil {
+		return 0, err
+	}
+	defer res.Body.Close()
+	if res.IsError() {
+		return 0, fmt.Errorf("删除失败: %s", res.String())
+	}
+	var parsed struct {
+		Deleted int64 `json:"deleted"`
+	}
+	if err := json.NewDecoder(res.Body).Decode(&parsed); err != nil {
+		return 0, err
+	}
+	return parsed.Deleted, nil
 }

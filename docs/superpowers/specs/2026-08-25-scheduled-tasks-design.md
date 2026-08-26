@@ -71,16 +71,19 @@
 
 ### 4.3 菜单种子（同迁移文件）
 
-- 一级目录 id=4「任务管理」icon `el-icon-alarm-clock` path `/system/task-mgr` sort=4
-- 二级菜单 id=32「定时任务」path `/system/task` icon `el-icon-alarm-clock` sort=1
-- 按钮 id 33-39：
-  - 33 `cron:list` 任务列表
-  - 34 `cron:query` 任务查询
-  - 35 `cron:add` 任务新增
-  - 36 `cron:edit` 任务编辑
-  - 37 `cron:delete` 任务删除
-  - 38 `cron:run` 立即执行
-  - 39 `cron:log` 执行日志
+> 注：原设计目录 id=4 与现有种子冲突（id=4 已被「用户管理」占用，000002 种子），现有菜单 id 至 31，故从 32 起顺延。
+
+- 一级目录 id=32「任务管理」icon `el-icon-alarm-clock` path `/system/task-mgr` sort=4
+- 二级菜单 id=33「定时任务」path `/system/task` icon `el-icon-alarm-clock` sort=1
+- 按钮 id 34-40：
+  - 34 `cron:list` 任务列表
+  - 35 `cron:query` 任务查询
+  - 36 `cron:add` 任务新增
+  - 37 `cron:edit` 任务编辑
+  - 38 `cron:delete` 任务删除
+  - 39 `cron:run` 立即执行
+  - 40 `cron:log` 执行日志
+- role_menus 关联：admin（role_id=1）补 `(1,32)…(1,40)` 全量关联（对齐 000003 中已绑 1-31 的做法）
 
 ## 5. 后端架构
 

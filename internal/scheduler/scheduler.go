@@ -102,21 +102,43 @@ func (s *Scheduler) execute(task *model.CronTask, trigger string) {
 	}
 	defer s.running.Delete(task.ID)
 
+	// 解析执行配置：预定义命令 or 自定义 HTTP
+	method := task.Method
+	url := task.URL
+	headers := task.Headers
+	bodyStr := task.Body
+
+	if task.Command != "" {
+		if cmd, ok := Commands[task.Command]; ok {
+			method = cmd.Method
+			url = cmd.URL
+			if cmd.Headers != nil {
+				if b, err := json.Marshal(cmd.Headers); err == nil {
+					headers = string(b)
+				}
+			}
+			bodyStr = cmd.Body
+		} else {
+			s.saveExec(task.ID, trigger, ExecStatusFailed, 0, "", "未知命令: "+task.Command, 0)
+			return
+		}
+	}
+
 	start := time.Now()
 	var body io.Reader
-	if task.Method == "POST" {
-		body = strings.NewReader(task.Body)
+	if method == "POST" {
+		body = strings.NewReader(bodyStr)
 	}
-	req, err := http.NewRequest(task.Method, task.URL, body)
+	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		s.saveExec(task.ID, trigger, ExecStatusFailed, 0, "", "请求创建失败: "+err.Error(), int(time.Since(start).Milliseconds()))
 		return
 	}
 	// 请求头（JSON 对象，创建时已校验）
-	if strings.TrimSpace(task.Headers) != "" {
-		var headers map[string]string
-		if err := json.Unmarshal([]byte(task.Headers), &headers); err == nil {
-			for k, v := range headers {
+	if strings.TrimSpace(headers) != "" {
+		var headerMap map[string]string
+		if err := json.Unmarshal([]byte(headers), &headerMap); err == nil {
+			for k, v := range headerMap {
 				req.Header.Set(k, v)
 			}
 		}

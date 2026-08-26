@@ -1196,10 +1196,15 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "清理密钥（与 LOG_CLEANUP_SECRET 比对）",
+                        "description": "清理密钥（与 LOG_CLEANUP_SECRET 比对，优先于 query secret）",
+                        "name": "X-Cleanup-Secret",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "清理密钥（与 LOG_CLEANUP_SECRET 比对，header 缺失时回退）",
                         "name": "secret",
-                        "in": "query",
-                        "required": true
+                        "in": "query"
                     },
                     {
                         "type": "integer",

@@ -116,6 +116,12 @@ func main() {
 
 	// 定时任务调度器
 	taskScheduler := scheduler.NewScheduler(cronTaskDAO, cronTaskExecutionDAO)
+	// 种子清理任务占位符密钥注入（__LOG_CLEANUP_SECRET__ → .env 实际值）
+	if n, err := cronTaskDAO.InjectCleanupSecret(cfg.LogCleanupSecret); err != nil {
+		log.Printf("清理任务密钥注入失败: %v", err)
+	} else if n > 0 {
+		log.Printf("已为 %d 个清理任务注入密钥", n)
+	}
 	go taskScheduler.Start()
 
 	// Controller

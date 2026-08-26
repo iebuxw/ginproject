@@ -198,14 +198,18 @@ func (ctl *LogController) Download(c *gin.Context) {
 // @Description 按保留天数分批删除旧日志（操作日志/登录日志），ES 同步清理。供定时任务调用，需携带 secret
 // @Tags 操作日志
 // @Produce json
-// @Param secret query string true "清理密钥（与 LOG_CLEANUP_SECRET 比对）"
+// @Param X-Cleanup-Secret header string false "清理密钥（与 LOG_CLEANUP_SECRET 比对，优先于 query secret）"
+// @Param secret query string false "清理密钥（与 LOG_CLEANUP_SECRET 比对，header 缺失时回退）"
 // @Param days query int false "保留天数（删除创建时间早于 now-days 的日志）" default(30)
 // @Param scope query string false "清理范围：operation/login/all，默认 all"
 // @Success 200 {object} utils.Response{data=object{operation_deleted=int,login_deleted=int}} "成功"
 // @Failure 200 {object} utils.Response "参数非法"
 // @Router /logs/cleanup [post]
 func (ctl *LogController) Cleanup(c *gin.Context) {
-	secret := c.Query("secret")
+	secret := c.GetHeader("X-Cleanup-Secret")
+	if secret == "" {
+		secret = c.Query("secret")
+	}
 	if ctl.cleanupSecret == "" || secret != ctl.cleanupSecret {
 		utils.ErrorWithStatus(c, http.StatusForbidden, 403, "密钥无效")
 		return

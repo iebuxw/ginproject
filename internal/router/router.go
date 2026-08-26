@@ -129,6 +129,10 @@ func Setup(
 			middleware.RequirePerm("dict:delete"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), dictDataCtrl.Delete)
 
 		// 定时任务
+		authorized.GET("/cron-tasks/commands",
+			middleware.RequirePerm("cron:list"), middleware.RBAC(menuDAO), taskCtrl.Commands)
+		authorized.GET("/cron-tasks/executions",
+			middleware.RequirePerm("cron:log"), middleware.RBAC(menuDAO), taskCtrl.ListAllExecutions)
 		authorized.GET("/cron-tasks",
 			middleware.RequirePerm("cron:list"), middleware.RBAC(menuDAO), taskCtrl.List)
 		authorized.GET("/cron-tasks/:id",

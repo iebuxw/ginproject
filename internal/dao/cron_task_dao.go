@@ -82,3 +82,24 @@ func (d *CronTaskExecutionDAO) FindByTaskIDPage(taskID uint, page, pageSize int)
 	err := q.Offset((page - 1) * pageSize).Limit(pageSize).Order("id DESC").Find(&list).Error
 	return list, total, err
 }
+
+func (d *CronTaskExecutionDAO) FindAllPage(taskID uint, status int, startTime, endTime string, page, pageSize int) ([]model.CronTaskExecution, int64, error) {
+	var list []model.CronTaskExecution
+	var total int64
+	q := d.db.Model(&model.CronTaskExecution{})
+	if taskID > 0 {
+		q = q.Where("task_id = ?", taskID)
+	}
+	if status >= 0 {
+		q = q.Where("status = ?", status)
+	}
+	if startTime != "" {
+		q = q.Where("created_at >= ?", startTime)
+	}
+	if endTime != "" {
+		q = q.Where("created_at <= ?", endTime+" 23:59:59")
+	}
+	q.Count(&total)
+	err := q.Offset((page - 1) * pageSize).Limit(pageSize).Order("id DESC").Find(&list).Error
+	return list, total, err
+}

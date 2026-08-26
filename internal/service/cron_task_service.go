@@ -23,23 +23,37 @@ func (s *CronTaskService) validate(t *model.CronTask) error {
 	if strings.TrimSpace(t.Name) == "" {
 		return errors.New("任务名称不能为空")
 	}
-	if strings.TrimSpace(t.URL) == "" {
-		return errors.New("回调地址不能为空")
+	// command 校验
+	cmd := strings.TrimSpace(t.Command)
+	if cmd != "" && cmd != "_custom" {
+		// 预定义命令：必须在注册表中
+		if _, ok := scheduler.Commands[cmd]; !ok {
+			return errors.New("未知的预定义命令")
+		}
 	}
-	if t.Method != "GET" && t.Method != "POST" {
-		return errors.New("请求方式仅支持 GET/POST")
+	if cmd == "_custom" {
+		t.Command = "" // 转为空字符串，走自定义模式
+	}
+	// 自定义模式下校验 HTTP 字段
+	if t.Command == "" {
+		if strings.TrimSpace(t.URL) == "" {
+			return errors.New("回调地址不能为空")
+		}
+		if t.Method != "GET" && t.Method != "POST" {
+			return errors.New("请求方式仅支持 GET/POST")
+		}
+		if strings.TrimSpace(t.Headers) != "" {
+			var m map[string]string
+			if err := json.Unmarshal([]byte(t.Headers), &m); err != nil {
+				return errors.New("请求头必须是 JSON 对象")
+			}
+		}
 	}
 	if t.Timeout < 1 || t.Timeout > 300 {
 		return errors.New("超时时间需在 1-300 秒之间")
 	}
 	if _, err := scheduler.ParseCron(t.Cron); err != nil {
 		return errors.New("cron 表达式不合法（格式：秒 分 时 日 月 周）")
-	}
-	if strings.TrimSpace(t.Headers) != "" {
-		var m map[string]string
-		if err := json.Unmarshal([]byte(t.Headers), &m); err != nil {
-			return errors.New("请求头必须是 JSON 对象")
-		}
 	}
 	return nil
 }
@@ -104,4 +118,12 @@ func (s *CronTaskService) RunNow(id uint) error {
 
 func (s *CronTaskService) FindExecutions(taskID uint, page, pageSize int) ([]model.CronTaskExecution, int64, error) {
 	return s.execDAO.FindByTaskIDPage(taskID, page, pageSize)
+}
+
+func (s *CronTaskService) ListCommands() []scheduler.CommandOption {
+	return scheduler.CommandList()
+}
+
+func (s *CronTaskService) FindAllExecutions(taskID uint, status int, startTime, endTime string, page, pageSize int) ([]model.CronTaskExecution, int64, error) {
+	return s.execDAO.FindAllPage(taskID, status, startTime, endTime, page, pageSize)
 }

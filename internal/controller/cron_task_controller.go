@@ -190,3 +190,44 @@ func (ctl *CronTaskController) Executions(c *gin.Context) {
 	}
 	utils.Success(c, gin.H{"list": list, "total": total})
 }
+
+// Commands 获取预定义命令列表
+// @Summary 获取预定义命令列表
+// @Description 返回所有可用的预定义命令（名称+标识），供前端下拉使用
+// @Tags 定时任务
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} utils.Response{data=[]scheduler.CommandOption} "成功"
+// @Router /cron-tasks/commands [get]
+func (ctl *CronTaskController) Commands(c *gin.Context) {
+	utils.Success(c, ctl.cronTaskService.ListCommands())
+}
+
+// ListAllExecutions 获取全部执行日志（分页+筛选）
+// @Summary 获取全部执行日志
+// @Description 分页查询所有任务的执行日志，支持按任务/状态/时间范围筛选
+// @Tags 定时任务
+// @Security BearerAuth
+// @Produce json
+// @Param task_id query int false "任务 ID"
+// @Param status query int false "状态（0成功/1失败/2跳过）"
+// @Param start_time query string false "开始日期 YYYY-MM-DD"
+// @Param end_time query string false "结束日期 YYYY-MM-DD"
+// @Param page query int false "页码" default(1)
+// @Param page_size query int false "每页数量" default(10)
+// @Success 200 {object} utils.Response{data=object{list=[]model.CronTaskExecution,total=int}} "成功"
+// @Router /cron-tasks/executions [get]
+func (ctl *CronTaskController) ListAllExecutions(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	taskID, _ := strconv.Atoi(c.DefaultQuery("task_id", "0"))
+	status, _ := strconv.Atoi(c.DefaultQuery("status", "-1"))
+	startTime := c.Query("start_time")
+	endTime := c.Query("end_time")
+	list, total, err := ctl.cronTaskService.FindAllExecutions(uint(taskID), status, startTime, endTime, page, pageSize)
+	if err != nil {
+		utils.Error(c, 500, err.Error())
+		return
+	}
+	utils.Success(c, gin.H{"list": list, "total": total})
+}

@@ -25,7 +25,7 @@ POST /api/logs/cleanup?secret=xxx&days=30&scope=all
 - **公开路由**（不走 JWT）：调度器发请求不带 token，防滥用靠 `secret` 参数与 `.env` 中 `LOG_CLEANUP_SECRET` 比对
 - **参数**：
   - `secret`：必填，与配置比对，不一致返回 403
-  - `days`：必填，保留天数，校验为 1~3650 的整数
+  - `days`：保留天数，校验为 1~3650 的整数，缺省 30（实现为 `DefaultQuery("days", "30")`）
   - `scope`：可选，`operation` / `login` / `all`，默认 `all`
 - **流程**：
   1. 校验密钥 → 计算截止时间 `now - days`
@@ -67,7 +67,7 @@ POST /api/logs/cleanup?secret=xxx&days=30&scope=all
 ## 错误处理
 
 - `secret` 不匹配：HTTP 403 + 业务错误
-- `days` 非法：HTTP 400
+- `days` 非法：业务码 400（`utils.Error` 惯例，HTTP 200）
 - ES 不可用：`log.Printf` 告警，继续返回 MySQL 清理结果
 - DAO 删除失败：返回错误，清理中断（下次调度重试）
 

@@ -102,29 +102,29 @@ func (s *Scheduler) execute(task *model.CronTask, trigger string) {
 	}
 	defer s.running.Delete(task.ID)
 
-	// 解析执行配置：预定义命令 or 自定义 HTTP
+	start := time.Now()
+
+	// 预定义命令：进程内直接调用 Handler，不走 HTTP
+	if task.Command != "" {
+		cmd, ok := Commands[task.Command]
+		if !ok {
+			s.saveExec(task.ID, trigger, ExecStatusFailed, 0, "", "未知命令: "+task.Command, 0)
+			return
+		}
+		res, err := cmd.Handler(0)
+		if err != nil {
+			s.saveExec(task.ID, trigger, ExecStatusFailed, 0, "", err.Error(), int(time.Since(start).Milliseconds()))
+			return
+		}
+		s.saveExec(task.ID, trigger, ExecStatusSuccess, 0, res.Message, "", int(time.Since(start).Milliseconds()))
+		return
+	}
+
+	// 自定义 HTTP 模式
 	method := task.Method
 	url := task.URL
 	headers := task.Headers
 	bodyStr := task.Body
-
-	if task.Command != "" {
-		if cmd, ok := Commands[task.Command]; ok {
-			method = cmd.Method
-			url = cmd.URL
-			if cmd.Headers != nil {
-				if b, err := json.Marshal(cmd.Headers); err == nil {
-					headers = string(b)
-				}
-			}
-			bodyStr = cmd.Body
-		} else {
-			s.saveExec(task.ID, trigger, ExecStatusFailed, 0, "", "未知命令: "+task.Command, 0)
-			return
-		}
-	}
-
-	start := time.Now()
 	var body io.Reader
 	if method == "POST" {
 		body = strings.NewReader(bodyStr)

@@ -114,14 +114,28 @@ func main() {
 	mailWorker := worker.NewMailWorker(amqpConn, alertMailService)
 	go mailWorker.Start()
 
-	// 定时任务调度器
-	taskScheduler := scheduler.NewScheduler(cronTaskDAO, cronTaskExecutionDAO)
-	// 种子清理任务占位符密钥注入（__LOG_CLEANUP_SECRET__ → .env 实际值）
-	if n, err := cronTaskDAO.InjectCleanupSecret(cfg.LogCleanupSecret); err != nil {
-		log.Printf("清理任务密钥注入失败: %v", err)
-	} else if n > 0 {
-		log.Printf("已为 %d 个清理任务注入密钥", n)
+	// 定时任务调度器（内置命令进程内执行，注入真实清理实现）
+	scheduler.Commands["clean_logs"] = scheduler.CommandDef{
+		Name:   "clean_logs",
+		Label:  "清理过期日志",
+		Handler: func(days int) (scheduler.CommandResult, error) {
+			if days < 1 || days > 3650 {
+				days = 30
+			}
+			opN, err := logService.Cleanup(days)
+			if err != nil {
+				return scheduler.CommandResult{}, err
+			}
+			loginN, err := loginLogService.Cleanup(days)
+			if err != nil {
+				return scheduler.CommandResult{}, err
+			}
+			return scheduler.CommandResult{
+				Message: fmt.Sprintf("清理完成：操作日志 %d 条，登录日志 %d 条", opN, loginN),
+			}, nil
+		},
 	}
+	taskScheduler := scheduler.NewScheduler(cronTaskDAO, cronTaskExecutionDAO)
 	go taskScheduler.Start()
 
 	// Controller

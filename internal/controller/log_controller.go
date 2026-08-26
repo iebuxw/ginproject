@@ -199,7 +199,7 @@ func (ctl *LogController) Download(c *gin.Context) {
 // @Tags 操作日志
 // @Produce json
 // @Param secret query string true "清理密钥（与 LOG_CLEANUP_SECRET 比对）"
-// @Param days query int true "保留天数（删除创建时间早于 now-days 的日志）"
+// @Param days query int false "保留天数（删除创建时间早于 now-days 的日志）" default(30)
 // @Param scope query string false "清理范围：operation/login/all，默认 all"
 // @Success 200 {object} utils.Response{data=object{operation_deleted=int,login_deleted=int}} "成功"
 // @Failure 200 {object} utils.Response "参数非法"

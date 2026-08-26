@@ -1183,6 +1183,48 @@ const docTemplate = `{
                 }
             }
         },
+        "/logs/cleanup": {
+            "post": {
+                "description": "按保留天数分批删除旧日志（操作日志/登录日志），ES 同步清理。供定时任务调用，需携带 secret",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "操作日志"
+                ],
+                "summary": "清理旧日志",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "清理密钥（与 LOG_CLEANUP_SECRET 比对）",
+                        "name": "secret",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 30,
+                        "description": "保留天数（删除创建时间早于 now-days 的日志）",
+                        "name": "days",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "清理范围：operation/login/all，默认 all",
+                        "name": "scope",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "参数非法",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/logs/download/{taskID}": {
             "get": {
                 "security": [

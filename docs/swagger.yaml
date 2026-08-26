@@ -918,6 +918,34 @@ paths:
       summary: 查询操作日志
       tags:
       - 操作日志
+  /logs/cleanup:
+    post:
+      description: 按保留天数分批删除旧日志（操作日志/登录日志），ES 同步清理。供定时任务调用，需携带 secret
+      parameters:
+      - description: 清理密钥（与 LOG_CLEANUP_SECRET 比对）
+        in: query
+        name: secret
+        required: true
+        type: string
+      - default: 30
+        description: 保留天数（删除创建时间早于 now-days 的日志）
+        in: query
+        name: days
+        type: integer
+      - description: 清理范围：operation/login/all，默认 all
+        in: query
+        name: scope
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 参数非法
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: 清理旧日志
+      tags:
+      - 操作日志
   /logs/download/{taskID}:
     get:
       description: 下载已完成的导出文件，下载后服务端自动删除

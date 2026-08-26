@@ -49,6 +49,18 @@ func (d *CronTaskDAO) FindEnabled() ([]model.CronTask, error) {
 	return list, err
 }
 
+// InjectCleanupSecret 将任务 Headers 中的占位符替换为实际清理密钥（main.go 启动时调用）
+func (d *CronTaskDAO) InjectCleanupSecret(secret string) (int64, error) {
+	placeholder := "__LOG_CLEANUP_SECRET__"
+	if secret == "" {
+		return 0, nil
+	}
+	res := d.db.Model(&model.CronTask{}).
+		Where("headers LIKE ?", "%"+placeholder+"%").
+		Update("headers", gorm.Expr("REPLACE(headers, ?, ?)", placeholder, secret))
+	return res.RowsAffected, res.Error
+}
+
 // ---- CronTaskExecution DAO ----
 
 type CronTaskExecutionDAO struct{ db *gorm.DB }

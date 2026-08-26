@@ -71,19 +71,19 @@
 
 ### 4.3 菜单种子（同迁移文件）
 
-> 注：原设计目录 id=4 与现有种子冲突（id=4 已被「用户管理」占用，000002 种子），现有菜单 id 至 31，故从 32 起顺延。
+> 注：原设计目录 id=4 与现有种子冲突（id=4 已被「用户管理」占用，000002 种子），第一次修正为 32 起；实际执行时发现现有库菜单 id 已用到 34（历史数据与迁移种子不同：32-34 已被字典编辑/删除/类型占用），故最终从 41 起顺延。
 
-- 一级目录 id=32「任务管理」icon `el-icon-alarm-clock` path `/system/task-mgr` sort=4
-- 二级菜单 id=33「定时任务」path `/system/task` icon `el-icon-alarm-clock` sort=1
-- 按钮 id 34-40：
-  - 34 `cron:list` 任务列表
-  - 35 `cron:query` 任务查询
-  - 36 `cron:add` 任务新增
-  - 37 `cron:edit` 任务编辑
-  - 38 `cron:delete` 任务删除
-  - 39 `cron:run` 立即执行
-  - 40 `cron:log` 执行日志
-- role_menus 关联：admin（role_id=1）补 `(1,32)…(1,40)` 全量关联（对齐 000003 中已绑 1-31 的做法）
+- 一级目录 id=41「任务管理」icon `el-icon-alarm-clock` path `/system/task-mgr` sort=4
+- 二级菜单 id=42「定时任务」path `/system/task` icon `el-icon-alarm-clock` sort=1
+- 按钮 id 43-49：
+  - 43 `cron:list` 任务列表
+  - 44 `cron:query` 任务查询
+  - 45 `cron:add` 任务新增
+  - 46 `cron:edit` 任务编辑
+  - 47 `cron:delete` 任务删除
+  - 48 `cron:run` 立即执行
+  - 49 `cron:log` 执行日志
+- role_menus 关联：admin（role_id=1）补 `(1,41)…(1,49)` 全量关联（对齐现有库已绑 1-34 的做法）
 
 ## 5. 后端架构
 

@@ -16,6 +16,7 @@ import (
 	"ginproject/internal/dao"
 	"ginproject/internal/es"
 	"ginproject/internal/router"
+	"ginproject/internal/scheduler"
 	"ginproject/internal/service"
 	"ginproject/internal/worker"
 	"ginproject/internal/ws"
@@ -74,6 +75,8 @@ func main() {
 	loginLogDAO := dao.NewLoginLogDAO(db)
 	dictTypeDAO := dao.NewDictTypeDAO(db)
 	dictDataDAO := dao.NewDictDataDAO(db)
+	cronTaskDAO := dao.NewCronTaskDAO(db)
+	cronTaskExecutionDAO := dao.NewCronTaskExecutionDAO(db)
 
 	// Service
 	authService := service.NewAuthService(userDAO, rdb, cfg)
@@ -111,6 +114,10 @@ func main() {
 	mailWorker := worker.NewMailWorker(amqpConn, alertMailService)
 	go mailWorker.Start()
 
+	// 定时任务调度器
+	taskScheduler := scheduler.NewScheduler(cronTaskDAO, cronTaskExecutionDAO)
+	go taskScheduler.Start()
+
 	// Controller
 	authCtrl := controller.NewAuthController(authService, menuDAO, loginLogService, rdb, publishCh)
 	userCtrl := controller.NewUserController(userService)
@@ -120,9 +127,11 @@ func main() {
 	loginLogCtrl := controller.NewLoginLogController(loginLogService)
 	dictTypeCtrl := controller.NewDictTypeController(dictTypeService)
 	dictDataCtrl := controller.NewDictDataController(dictDataService)
+	cronTaskService := service.NewCronTaskService(cronTaskDAO, cronTaskExecutionDAO, taskScheduler)
+	cronTaskCtrl := controller.NewCronTaskController(cronTaskService)
 
 	// Router
-	r := router.Setup(cfg, authCtrl, userCtrl, roleCtrl, menuCtrl, logCtrl, loginLogCtrl, wsCtrl, authService, userDAO, menuDAO, logDAO, logRepo, dictTypeCtrl, dictDataCtrl)
+	r := router.Setup(cfg, authCtrl, userCtrl, roleCtrl, menuCtrl, logCtrl, loginLogCtrl, wsCtrl, authService, userDAO, menuDAO, logDAO, logRepo, dictTypeCtrl, dictDataCtrl, cronTaskCtrl)
 
 	log.Printf("Server running on :%s", cfg.Server.Port)
 	if err := r.Run(":" + cfg.Server.Port); err != nil {

@@ -31,6 +31,7 @@ func Setup(
 	logRepo *es.LogRepo,
 	dictTypeCtrl *controller.DictTypeController,
 	dictDataCtrl *controller.DictDataController,
+	taskCtrl *controller.CronTaskController,
 ) *gin.Engine {
 	r := gin.Default()
 	r.Use(middleware.CORS())
@@ -123,6 +124,24 @@ func Setup(
 			middleware.RequirePerm("dict:edit"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), dictDataCtrl.Update)
 		authorized.DELETE("/dict-data/:id",
 			middleware.RequirePerm("dict:delete"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), dictDataCtrl.Delete)
+
+		// 定时任务
+		authorized.GET("/cron-tasks",
+			middleware.RequirePerm("cron:list"), middleware.RBAC(menuDAO), taskCtrl.List)
+		authorized.GET("/cron-tasks/:id",
+			middleware.RequirePerm("cron:query"), middleware.RBAC(menuDAO), taskCtrl.Get)
+		authorized.POST("/cron-tasks",
+			middleware.RequirePerm("cron:add"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), taskCtrl.Create)
+		authorized.PUT("/cron-tasks/:id",
+			middleware.RequirePerm("cron:edit"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), taskCtrl.Update)
+		authorized.DELETE("/cron-tasks/:id",
+			middleware.RequirePerm("cron:delete"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), taskCtrl.Delete)
+		authorized.PUT("/cron-tasks/:id/status",
+			middleware.RequirePerm("cron:edit"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), taskCtrl.UpdateStatus)
+		authorized.POST("/cron-tasks/:id/run",
+			middleware.RequirePerm("cron:run"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), taskCtrl.Run)
+		authorized.GET("/cron-tasks/:id/executions",
+			middleware.RequirePerm("cron:log"), middleware.RBAC(menuDAO), taskCtrl.Executions)
 	}
 
 	// WebSocket

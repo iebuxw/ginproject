@@ -12,6 +12,95 @@ definitions:
     - password
     - username
     type: object
+  model.CronTask:
+    properties:
+      body:
+        type: string
+      created_at:
+        type: string
+      cron:
+        type: string
+      headers:
+        type: string
+      id:
+        type: integer
+      last_exec_status:
+        description: 最近一次执行状态，-1=无记录（只读，列表子查询填充）
+        type: integer
+      method:
+        type: string
+      name:
+        type: string
+      remark:
+        type: string
+      status:
+        type: integer
+      timeout:
+        type: integer
+      updated_at:
+        type: string
+      url:
+        type: string
+    type: object
+  model.CronTaskExecution:
+    properties:
+      created_at:
+        type: string
+      duration_ms:
+        type: integer
+      error_msg:
+        type: string
+      http_status:
+        type: integer
+      id:
+        type: integer
+      response:
+        type: string
+      status:
+        type: integer
+      task_id:
+        type: integer
+      trigger:
+        type: string
+    type: object
+  model.DictData:
+    properties:
+      created_at:
+        type: string
+      dict_type_id:
+        type: integer
+      id:
+        type: integer
+      label:
+        type: string
+      remark:
+        type: string
+      sort:
+        type: integer
+      status:
+        type: integer
+      updated_at:
+        type: string
+      value:
+        type: string
+    type: object
+  model.DictType:
+    properties:
+      code:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      status:
+        type: integer
+      updated_at:
+        type: string
+    type: object
   model.LoginLog:
     properties:
       created_at:
@@ -80,6 +169,8 @@ definitions:
   model.User:
     properties:
       created_at:
+        type: string
+      description:
         type: string
       email:
         type: string
@@ -207,6 +298,521 @@ paths:
       summary: 获取当前用户信息
       tags:
       - 认证
+  /cron-tasks:
+    get:
+      description: 分页查询定时任务列表，支持关键词搜索（名称/URL）
+      parameters:
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      - description: 搜索关键词（名称/URL）
+        in: query
+        name: keyword
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  properties:
+                    list:
+                      items:
+                        $ref: '#/definitions/model.CronTask'
+                      type: array
+                    total:
+                      type: integer
+                  type: object
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 获取定时任务分页列表
+      tags:
+      - 定时任务
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 任务信息
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.CronTask'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 新建定时任务
+      tags:
+      - 定时任务
+  /cron-tasks/{id}:
+    delete:
+      parameters:
+      - description: 任务 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 删除定时任务
+      tags:
+      - 定时任务
+    get:
+      description: 根据 ID 查询定时任务详情
+      parameters:
+      - description: 任务 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 任务不存在
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 获取定时任务详情
+      tags:
+      - 定时任务
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: 任务 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 任务信息
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.CronTask'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 编辑定时任务
+      tags:
+      - 定时任务
+  /cron-tasks/{id}/executions:
+    get:
+      description: 分页查询指定任务的执行日志
+      parameters:
+      - description: 任务 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  properties:
+                    list:
+                      items:
+                        $ref: '#/definitions/model.CronTaskExecution'
+                      type: array
+                    total:
+                      type: integer
+                  type: object
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 获取任务执行日志
+      tags:
+      - 定时任务
+  /cron-tasks/{id}/run:
+    post:
+      description: 手动触发任务立即执行，写入 manual 执行日志
+      parameters:
+      - description: 任务 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 立即执行一次
+      tags:
+      - 定时任务
+  /cron-tasks/{id}/status:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: 任务 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 状态（1=启用 0=停用）
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            status:
+              type: integer
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 启停定时任务
+      tags:
+      - 定时任务
+  /dict-data:
+    get:
+      description: 根据字典类型 ID 分页查询数据项
+      parameters:
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      - description: 字典类型 ID
+        in: query
+        name: dict_type_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  properties:
+                    list:
+                      items:
+                        $ref: '#/definitions/model.DictData'
+                      type: array
+                    total:
+                      type: integer
+                  type: object
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 获取字典数据分页列表
+      tags:
+      - 数据字典
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 字典数据信息
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.DictData'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 新建字典数据
+      tags:
+      - 数据字典
+  /dict-data/{id}:
+    delete:
+      parameters:
+      - description: 字典数据 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 删除字典数据
+      tags:
+      - 数据字典
+    get:
+      parameters:
+      - description: 字典数据 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 字典数据不存在
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 获取字典数据详情
+      tags:
+      - 数据字典
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: 字典数据 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 字典数据信息
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.DictData'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 编辑字典数据
+      tags:
+      - 数据字典
+  /dict-data/by-code/{code}:
+    get:
+      parameters:
+      - description: 字典编码（如 gender、user_status）
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.DictData'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 根据字典编码获取数据项
+      tags:
+      - 数据字典
+  /dict-types:
+    get:
+      description: 分页查询字典类型列表，支持关键词搜索
+      parameters:
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      - description: 搜索关键词（名称/编码）
+        in: query
+        name: keyword
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  properties:
+                    list:
+                      items:
+                        $ref: '#/definitions/model.DictType'
+                      type: array
+                    total:
+                      type: integer
+                  type: object
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 获取字典类型分页列表
+      tags:
+      - 数据字典
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 字典类型信息
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.DictType'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 新建字典类型
+      tags:
+      - 数据字典
+  /dict-types/{id}:
+    delete:
+      description: 根据 ID 删除字典类型，存在关联数据项时拒绝删除
+      parameters:
+      - description: 字典类型 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 存在关联数据项，无法删除
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 删除字典类型
+      tags:
+      - 数据字典
+    get:
+      description: 根据 ID 查询字典类型详情
+      parameters:
+      - description: 字典类型 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 字典类型不存在
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 获取字典类型详情
+      tags:
+      - 数据字典
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: 字典类型 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 字典类型信息
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.DictType'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 编辑字典类型
+      tags:
+      - 数据字典
   /login-logs:
     get:
       description: 分页查询登录日志记录
@@ -347,6 +953,21 @@ paths:
       - description: 请求方法筛选
         in: body
         name: body.body.method
+        schema:
+          type: string
+      - description: 搜索关键词（路径/参数）
+        in: body
+        name: body.body.keyword
+        schema:
+          type: string
+      - description: 开始时间 (yyyy-MM-dd HH:mm:ss)
+        in: body
+        name: body.body.start_time
+        schema:
+          type: string
+      - description: 结束时间 (yyyy-MM-dd HH:mm:ss)
+        in: body
+        name: body.body.end_time
         schema:
           type: string
       produces:

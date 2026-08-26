@@ -12,6 +12,9 @@ go run cmd/server/main.go
 # 编译
 go build -o server ./cmd/server/
 
+# Swagger 文档（修改注释后必须重新生成，访问 http://localhost:8000/swagger/index.html）
+swag init -g cmd/server/main.go
+
 # Docker 中重新构建并重启 Go 服务
 docker compose up -d --build go-app
 ```
@@ -39,7 +42,7 @@ docker compose restart redis  # 重启单个服务
 
 **访问地址：** http://localhost:8080（nginx → Vue SPA + /api 代理到 go-app:8000）
 
-**默认管理员：** `admin` / `admin`（seed 脚本写入）；但 DB 中实际密码已被改为 `123456`，登录受阻先用 `123456`，**未经用户明确同意不得擅自重置密码/用户数据**。
+**默认管理员：** `admin` / `admin`（迁移种子 000003 写入）；但 DB 中实际密码已被改为 `123456`，登录受阻先用 `123456`，**未经用户明确同意不得擅自重置密码/用户数据**。
 
 ### 本地运行须知
 
@@ -47,12 +50,12 @@ docker compose restart redis  # 重启单个服务
 
 ### 测试与 Lint
 
-**无测试、无 lint/typecheck、无 CI。** DDL 由 `AutoMigrate` 自动建表，无迁移文件。
+**无测试、无 lint/typecheck、无 CI。** DDL 和种子数据由 golang-migrate 管理（`migrations/`：000001 建表、000002 菜单种子、000003 admin/字典种子、000004 用户描述字段），启动时自动执行。新增迁移按 `00000N_xxx` 递增创建成对 .up/.down 文件，建表用 `IF NOT EXISTS`、种子用 `INSERT IGNORE` + 显式 id 保证幂等。
 
 ## 架构
 
 ```
-cmd/server/main.go          # 入口：手动组装依赖链，自动建表，种子数据
+cmd/server/main.go          # 入口：手动组装依赖链，启动时执行 golang-migrate 迁移
 internal/
   config/                    # Viper 读取 .env
   router/                    # Gin 路由注册，中间件链
@@ -60,7 +63,7 @@ internal/
   controller/                # 请求处理，参数绑定，调用 service
   service/                   # 业务逻辑（密码哈希、菜单树、token 黑名单）
   dao/                       # GORM 数据访问
-  model/                     # 结构体：User、Role、Menu、OperationLog、LoginLog、DateTime
+  model/                     # 结构体：User、Role、Menu、OperationLog、LoginLog、DictType、DictData、DateTime
 ```
 
 实际还有 `es/`（Elasticsearch 客户端 + LogRepo，操作日志全文检索）、`worker/`（导出/邮件后台 worker，消费 RabbitMQ）、`ws/`（WebSocket Hub）、`utils/`（response/jwt/hash/uuid）。
@@ -93,6 +96,15 @@ User ──N:M── Role ──N:M── Menu
 - 仅记录 POST/PUT/DELETE，跳过 GET
 - 捕获请求 body 作为 params，无 body 时回退用请求路径
 - 创建时间用自定义 `DateTime` 类型，JSON 格式 `2006-01-02 15:04:05`
+
+### 数据字典
+
+- `dict_type`（类型）+ `dict_data`（字典数据）两张表，DAO 为 `DictTypeDAO`/`DictDataDAO`，Service 为 `DictTypeService`/`DictDataService`（前者持有 dictDataDAO）
+- 前端页面 `web/src/views/dict/`，路由 `dict:list` 等权限点
+
+### 登录异常邮件告警
+
+- 登录失败触发告警：发布 RabbitMQ 消息 + Redis 限频，`worker.MailWorker` 消费并发送（SMTP 支持 465 隐式 SSL）
 
 ### 操作日志 ES 双写（学习功能）
 
@@ -127,4 +139,12 @@ User ──N:M── Role ──N:M── Menu
 - WebSocket 走 `gorilla/websocket`，nginx 需配置 `proxy_set_header Upgrade $http_upgrade` 转发 WebSocket 升级头
 - `DateTime` 类型不会触发 GORM 自动时间戳，需手动设置 `CreatedAt`
 - 手动操作 MySQL 插入中文时需加 `--default-character-set=utf8mb4`，否则乱码
+- 提交习惯：按功能模块分批提交，不同功能不混在一个 commit（如"修复字典操作列"和"新增用户描述字段"分开提交）
 - UI 文案全部中文
+
+## 工作方式
+
+- 需求有歧义、风险高或影响大时，先澄清并等待批准再写代码（Spec Coding，不做 Vibe Coding）
+- 实现前先说明方法；Plan 只写方案不写代码
+- 复杂任务拆分为低耦合、可独立验证的子任务，分步推进
+- 同一故障尝试修正超 5 次仍未解决时停止，汇报现状等待反馈

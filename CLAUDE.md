@@ -165,3 +165,11 @@ User ──N:M── Role ──N:M── Menu
 - 不修改已应用的迁移文件（migrations/），只能新增成对迁移
 - 不删除看似无用的历史代码/字段/路由，删除前先询问
 - 改动后必须编译通过（后端 go build / 前端 npm run build），并对受影响接口手工回归
+
+### 复用优先（防重复造轮子）
+
+- 写任何工具/函数前，先搜索：标准库 → 项目已有依赖（go.mod / web/package.json）→ 项目内已有实现（internal/、utils/）是否覆盖该功能
+- 已有依赖能力范围内直接用库 API（JWT/Excel/WebSocket/Redis/MQ/GORM 均已引入），不手写
+- 项目已有现成实现（utils/hash、utils/jwt、utils/uuid、utils/response 等）直接复用，不另起炉灶
+- 标准库和已有依赖都没有时，优先引入成熟三方库（选主流、维护活跃），不自己造轮子；引入前说明理由并经同意
+- 只有标准库、已有依赖、成熟三方库都不合适时，才允许自研实现

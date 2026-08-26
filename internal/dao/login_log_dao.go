@@ -1,6 +1,8 @@
 package dao
 
 import (
+	"time"
+
 	"ginproject/internal/model"
 
 	"gorm.io/gorm"
@@ -27,4 +29,10 @@ func (d *LoginLogDAO) FindPage(page, pageSize int, username string, status int) 
 	q.Count(&total)
 	err := q.Offset((page - 1) * pageSize).Limit(pageSize).Order("id DESC").Find(&logs).Error
 	return logs, total, err
+}
+
+// DeleteOlderThan 删除创建时间早于 before 的登录日志，最多删除 limit 条；返回实际删除行数
+func (d *LoginLogDAO) DeleteOlderThan(before time.Time, limit int) (int64, error) {
+	res := d.db.Where("created_at < ?", before).Limit(limit).Delete(&model.LoginLog{})
+	return res.RowsAffected, res.Error
 }

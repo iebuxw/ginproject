@@ -1,6 +1,8 @@
 package dao
 
 import (
+	"time"
+
 	"ginproject/internal/model"
 
 	"gorm.io/gorm"
@@ -71,4 +73,10 @@ func (d *LogDAO) FindBatch(f LogFilter, offset, limit int) ([]model.OperationLog
 	}
 	err := q.Order("id DESC").Offset(offset).Limit(limit).Find(&logs).Error
 	return logs, err
+}
+
+// DeleteOlderThan 删除创建时间早于 before 的日志，最多删除 limit 条；返回实际删除行数
+func (d *LogDAO) DeleteOlderThan(before time.Time, limit int) (int64, error) {
+	res := d.db.Where("created_at < ?", before).Limit(limit).Delete(&model.OperationLog{})
+	return res.RowsAffected, res.Error
 }

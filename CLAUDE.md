@@ -46,11 +46,11 @@ docker compose restart redis  # 重启单个服务
 
 ### 本地运行须知
 
-`.env` 被 gitignore，仓库内的 `.env` 填的是 docker 服务名（`mysql`/`redis`/`rabbitmq`/`elasticsearch`）。本机 `go run` 需覆盖：`MYSQL_PORT=3307`、`REDIS_PORT=6380`、`RABBITMQ_HOST=127.0.0.1`、`RABBITMQ_PORT=5672`、`ES_HOST=127.0.0.1`。`.env.example` 漏写 RabbitMQ 变量，复制时易漏。
+`.env` 被 gitignore，仓库内的 `.env` 填的是 docker 服务名（`mysql`/`redis`/`rabbitmq`/`elasticsearch`）。本机 `go run` 需覆盖：`MYSQL_PORT=3307`、`REDIS_PORT=6380`、`RABBITMQ_HOST=127.0.0.1`、`RABBITMQ_PORT=5672`、`ES_HOST=127.0.0.1`。
 
 ### 测试与 Lint
 
-**无测试、无 lint/typecheck、无 CI。** DDL 和种子数据由 golang-migrate 管理（`migrations/`：000001 建表、000002 菜单种子、000003 admin/字典种子、000004 用户描述字段），启动时自动执行。新增迁移按 `00000N_xxx` 递增创建成对 .up/.down 文件，建表用 `IF NOT EXISTS`、种子用 `INSERT IGNORE` + 显式 id 保证幂等。
+**测试极少：仅 `internal/middleware/logger_test.go`（操作日志密码脱敏），用 `go test ./...` 运行；无 lint/typecheck、无 CI。** DDL 和种子数据由 golang-migrate 管理（`migrations/` 目录，具体文件以目录现状为准），启动时自动执行。新增迁移按 `00000N_xxx` 递增创建成对 .up/.down 文件，建表用 `IF NOT EXISTS`、种子用 `INSERT IGNORE` + 显式 id 保证幂等。
 
 ## 架构
 
@@ -63,7 +63,8 @@ internal/
   controller/                # 请求处理，参数绑定，调用 service
   service/                   # 业务逻辑（密码哈希、菜单树、token 黑名单）
   dao/                       # GORM 数据访问
-  model/                     # 结构体：User、Role、Menu、OperationLog、LoginLog、DictType、DictData、DateTime
+  model/                     # 结构体：User、Role、Menu、OperationLog、LoginLog、DictType、DictData、CronTask、CronTaskExecution、DateTime
+  scheduler/                 # 定时任务调度器（robfig/cron/v3）+ 预定义命令注册表
 ```
 
 实际还有 `es/`（Elasticsearch 客户端 + LogRepo，操作日志全文检索）、`worker/`（导出/邮件后台 worker，消费 RabbitMQ）、`ws/`（WebSocket Hub）、`utils/`（response/jwt/hash/uuid）。
@@ -95,6 +96,7 @@ User ──N:M── Role ──N:M── Menu
 
 - 仅记录 POST/PUT/DELETE，跳过 GET
 - 捕获请求 body 作为 params，无 body 时回退用请求路径
+- params 落库前经 `maskSensitiveParams` 脱敏（password 类字段值替换为 `***`，JSON 与非 JSON 均处理）
 - 创建时间用自定义 `DateTime` 类型，JSON 格式 `2006-01-02 15:04:05`
 
 ### 数据字典
@@ -123,9 +125,20 @@ User ──N:M── Role ──N:M── Menu
 
 **Excel 写逻辑务必用 `StreamWriter.SetRow`，不要和 `SetCellValue` 混用**（混用会导致表头丢失）。
 
+### 定时任务（CronTask）
+
+- `cron_tasks`（任务）+ `cron_task_executions`（执行日志）两张表；Cron 表达式为 **6 段（秒 分 时 日 月 周）**，非标准 5 段
+- 任务两种模式：`command` 非空走**预定义命令**（注册表 `scheduler/commands.go`，提供 name/label/method/url/headers，任务的 url/headers/body 被忽略）；为空走自定义 HTTP。前端编辑对话框命令下拉中 `_custom` 即自定义模式，命令列表来自 `GET /api/cron-tasks/commands`
+- 任务增删改/启停后由 Service 调 `Reload()` 全量重建（热更新）；`running` sync.Map 防重叠，上次未执行完记跳过；页面「立即执行」走 `RunNow`，trigger=manual
+- 执行状态：0=成功，1=失败，2=跳过；响应体截断至 2000 字符
+- 种子清理任务的密钥占位符：headers 中的 `__LOG_CLEANUP_SECRET__`，启动时 `main.go` 调 `InjectCleanupSecret` 替换为 `.env` 实际值
+- 前端 `web/src/views/task/`（index.vue 任务管理 + logs.vue 执行日志），权限点 `cron:list/query/add/edit/delete/run/log`
+
 ### WebSocket
 
 `/api/ws` 是**公开路由**（不走 JWT），由 `ws.Hub` 维护连接并按 `user_id` 推送。nginx 需转发 `Upgrade` 头（已在 `docker/nginx.conf` 配置）。
+
+`POST /api/logs/cleanup` 同为**公开路由**：请求头 `X-Cleanup-Secret`（优先）或 query `secret` 与 `.env` 的 `LOG_CLEANUP_SECRET` 比对，通过后分批清理过期日志（days 缺省 30，校验失败返回业务码 400 而非 HTTP 状态码）。
 
 ## 注意事项
 

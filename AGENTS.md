@@ -49,7 +49,7 @@ internal/
   service/                 # 业务逻辑
   dao/                     # GORM 数据访问（无接口，直接具体类型）
   es/                      # Elasticsearch 访问（client/index/log_repo，操作日志全文检索）
-  model/                   # User/Role/Menu/OperationLog/LoginLog + DateTime
+  model/                   # User/Role/Menu/OperationLog/LoginLog/DictType/DictData + DateTime
   worker/                  # 导出后台 worker（消费 RabbitMQ 生成 Excel）
   ws/                      # WebSocket Hub
   utils/                   # response / jwt / hash / uuid
@@ -70,6 +70,8 @@ migrations/
   000002_seed_menus.down.sql           # 清空菜单
   000003_seed_admin_and_dict.up.sql    # admin用户、角色、字典种子
   000003_seed_admin_and_dict.down.sql  # 清空用户/角色/字典
+  000004_add_user_description.up.sql   # 用户新增描述字段
+  000004_add_user_description.down.sql # 回滚用户描述字段
 ```
 
 **启动时自动执行**：`main.go` 中 `runMigrations(cfg)` 会自动执行未运行的迁移。
@@ -91,6 +93,15 @@ User ──N:M── Role ──N:M── Menu（Menu.Permission 字段，如 "u
 - 前端路由由后端菜单树动态生成（`web/src/permission.js` 的 `generateRoutes`）
 - 每个 API 路由硬编码权限，如 `middleware.RequirePerm("user:add")`
 - 用户管理 CRUD **不支持分配角色**
+
+## 工作流程
+
+- 相同故障尝试修正超过 5 次后仍无法解决，停止并提供当前状态信息等待用户反馈
+- 重复出现 3 次的流程应沉淀为 Skill
+- 实现前先说明方法
+- 若需求有歧义、风险较高或影响较大，先澄清并等待批准再写代码
+- Plan 只写方案，不写代码
+- 坚持 Spec Coding，不做 Vibe Coding
 
 ## 关键约定
 

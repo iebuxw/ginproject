@@ -7,7 +7,7 @@
         :to="{ path: tag.path, query: tag.query, fullPath: tag.fullPath }"
         :class="isActive(tag) ? 'active' : ''"
         class="tags-view-item"
-        @contextmenu.prevent.stop="openMenu(tag, $event)"
+        @contextmenu.prevent.stop.native="openMenu(tag, $event)"
       >
         <i v-if="tag.meta && tag.meta.icon" :class="tag.meta.icon" class="tag-icon"></i>
         {{ tag.title }}
@@ -134,12 +134,19 @@ export default {
     },
     closeOthersTags() {
       this.$router.push(this.selectedTag)
-      this.$store.dispatch('tagsView/delOthersViews', this.selectedTag)
+      this.$store.dispatch('tagsView/delOthersViews', this.selectedTag).catch(() => {
+        // fallback: 手动关闭其他
+        const views = this.$store.state.tagsView.visitedViews.filter(
+          v => v.path === this.selectedTag.path || v.meta?.affix
+        )
+        this.$store.state.tagsView.visitedViews.splice(0, this.$store.state.tagsView.visitedViews.length, ...views)
+      })
       this.closeMenu()
     },
     closeAllTags() {
       this.$store.dispatch('tagsView/delAllViews').then(visitedViews => {
-        if (this.affixTags.some(tag => tag.path === this.$route.path)) {
+        const affixTags = this.visitedViews.filter(v => v.meta?.affix)
+        if (affixTags.some(tag => tag.path === this.$route.path)) {
           return
         }
         this.toLastView(visitedViews)
@@ -156,10 +163,8 @@ export default {
     },
     openMenu(tag, e) {
       const menuMinWidth = 105
-      const offsetLeft = this.$el.getBoundingClientRect().left
-      const offsetWidth = this.$el.offsetWidth
-      const maxLeft = offsetWidth - menuMinWidth
-      const left = e.clientX - offsetLeft + 15
+      const maxLeft = document.documentElement.clientWidth - menuMinWidth
+      const left = e.clientX + 15
       if (left > maxLeft) {
         this.left = maxLeft
       } else {
@@ -274,7 +279,7 @@ export default {
   margin: 0;
   background: #fff;
   z-index: 3000;
-  position: absolute;
+  position: fixed;
   list-style-type: none;
   padding: 5px 0;
   border-radius: 4px;

@@ -2,6 +2,18 @@
 
 Go(Gin) + Vue2 (Element UI) 单体仓库。UI 全中文，注释倾向中文。
 
+## 技术栈
+
+| 分类 | 技术 |
+|---|---|
+| 后端 | Go、Gin、GORM、golang-migrate |
+| 前端 | Vue 2、Element UI |
+| 数据库/缓存 | MySQL 5.7、Redis |
+| 中间件 | RabbitMQ（amqp091-go）、Elasticsearch 7.17（IK 分词，操作日志全文检索） |
+| 实时通信 | WebSocket（gorilla/websocket） |
+| 部署 | Docker、docker-compose、nginx（HTTPS/TLS 终止） |
+| 其他 | robfig/cron（定时任务）、excelize（Excel 导出）、JWT 认证 + RBAC 权限、Swagger |
+
 ## 快速开始
 
 ```bash

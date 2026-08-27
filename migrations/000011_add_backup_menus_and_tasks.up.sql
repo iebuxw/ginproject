@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS `db_backups` (
 
 -- 菜单种子
 INSERT IGNORE INTO menus (id, parent_id, name, path, permission, type, icon, sort, created_at, updated_at)
-VALUES (51, 26, '数据库备份', '/system/backup', 'db_backup:list', 2, 'el-icon-download', 4, NOW(), NOW());
+VALUES (51, 26, '数据库备份', '/system/backup', 'db_backup:list', 2, 'el-icon-folder-open', 4, NOW(), NOW());
 
 INSERT IGNORE INTO menus (id, parent_id, name, path, permission, type, icon, sort, created_at, updated_at)
 VALUES (52, 51, '新增', '', 'db_backup:add', 3, '', 1, NOW(), NOW()),

@@ -40,7 +40,7 @@ docker compose up -d --build  # 重新构建所有镜像
 docker compose restart redis  # 重启单个服务
 ```
 
-**访问地址：** http://localhost:8080（nginx → Vue SPA + /api 代理到 go-app:8000）
+**访问地址：** nginx 强制把 http://localhost:8080 301 到 **https://localhost:8443**（自签证书，见 docker/nginx.conf；Vue SPA + /api 代理到 go-app:8000）
 
 **默认管理员：** `admin` / `admin`（迁移种子 000003 写入）；但 DB 中实际密码已被改为 `123456`，登录受阻先用 `123456`，**未经用户明确同意不得擅自重置密码/用户数据**。
 
@@ -194,6 +194,7 @@ User ──N:M── Role ──N:M── Menu
 - 自动化验证：改动后不要本地 go run，直接 Docker 重建对应容器并验证：
   - 后端改动：`docker compose up -d --build go-app`，然后 curl 调用新增/修改的 API 确认返回值
   - 前端改动：`docker compose up -d --build nginx`，然后浏览器打开页面确认渲染
+  - agent-browser 自动化验证（登录后用 `eval` 查 DOM）：`agent-browser open "https://localhost:8443" --headless --args "--no-sandbox" --ignore-https-errors`。本机 Chrome 不加 `--no-sandbox` 会启动失败（exit 3）；忽略证书**必须用官方标志 `--ignore-https-errors`**，把 Chrome 原生 `--ignore-certificate-errors` 塞进 `--args` 会与 `--no-sandbox` 冲突导致 Chrome 无法启动
   - 无法手工回归测试的，生成手工回归测试建议清单，交由用户验证
 
 ### 复用优先（防重复造轮子）

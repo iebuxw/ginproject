@@ -48,6 +48,13 @@
             </el-tag>
           </template>
         </el-table-column>
+        <el-table-column label="类型" width="100">
+          <template slot-scope="{row}">
+            <el-tag :type="row.type === 'snapshot' ? 'warning' : 'success'" size="small">
+              {{ row.type === 'snapshot' ? '恢复快照' : '常规备份' }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="状态" width="80">
           <template slot-scope="{row}">
             <el-tag v-if="row.status === -1" type="warning">备份中...</el-tag>

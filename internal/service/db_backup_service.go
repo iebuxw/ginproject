@@ -99,6 +99,13 @@ func (s *DbBackupService) Restore(id int64) error {
 		return fmt.Errorf("备份文件不存在: %s", backup.Filename)
 	}
 
+	// 恢复前自动创建快照（仅生成文件，记录在恢复完成后插入）
+	snapshotRemark := fmt.Sprintf("恢复前自动快照（来源：ID=%d %s）", backup.ID, backup.Filename)
+	snapshotFile, snapshotSize, err := s.snapshotFile()
+	if err != nil {
+		return fmt.Errorf("恢复前快照失败: %w", err)
+	}
+
 	mysqlConn := fmt.Sprintf("mysql -h%s -P%s -u%s -p%s --skip-ssl %s",
 		s.cfg.Database.Host, s.cfg.Database.Port, s.cfg.Database.User, s.cfg.Database.Password, s.cfg.Database.DBName)
 
@@ -111,11 +118,77 @@ func (s *DbBackupService) Restore(id int64) error {
 	for _, cmdStr := range cmds {
 		cmd := exec.Command("sh", "-c", cmdStr)
 		if output, err := cmd.CombinedOutput(); err != nil {
+			os.Remove(filepath) // 清理快照文件
 			return fmt.Errorf("恢复失败: %s", string(output))
 		}
 	}
 
+	// 恢复完成后，插入快照记录（此时数据库已被恢复，需要重新插入）
+	snapshot := &model.DbBackup{
+		Filename:    snapshotFile,
+		FileSize:    snapshotSize,
+		TriggerType: "manual",
+		Status:      0,
+		Type:        "snapshot",
+		Remark:      snapshotRemark,
+		CreatedAt:   model.DateTime(time.Now()),
+	}
+	if err := s.backupDAO.Create(snapshot); err != nil {
+		return fmt.Errorf("保存快照记录失败: %w", err)
+	}
+
 	return nil
+}
+
+// snapshotFile 生成快照文件（仅文件，不写数据库）
+func (s *DbBackupService) snapshotFile() (string, int64, error) {
+	if err := os.MkdirAll(s.backupDir, 0755); err != nil {
+		return "", 0, fmt.Errorf("创建备份目录失败: %w", err)
+	}
+
+	filename := fmt.Sprintf("%s_%s.sql.gz", s.cfg.Database.DBName, time.Now().Format("20060102_150405"))
+	filepath := filepath.Join(s.backupDir, filename)
+
+	cmd := exec.Command("mysqldump",
+		"-h"+s.cfg.Database.Host,
+		"-P"+s.cfg.Database.Port,
+		"-u"+s.cfg.Database.User,
+		"-p"+s.cfg.Database.Password,
+		"--skip-ssl",
+		s.cfg.Database.DBName,
+	)
+
+	gzipCmd := exec.Command("gzip")
+	gzipCmd.Stdin, _ = cmd.StdoutPipe()
+	outFile, err := os.Create(filepath)
+	if err != nil {
+		return "", 0, fmt.Errorf("创建备份文件失败: %w", err)
+	}
+	gzipCmd.Stdout = outFile
+
+	if err := cmd.Start(); err != nil {
+		return "", 0, fmt.Errorf("启动 mysqldump 失败: %w", err)
+	}
+	if err := gzipCmd.Start(); err != nil {
+		return "", 0, fmt.Errorf("启动 gzip 失败: %w", err)
+	}
+
+	if err := cmd.Wait(); err != nil {
+		os.Remove(filepath)
+		return "", 0, fmt.Errorf("mysqldump 执行失败: %w", err)
+	}
+	if err := gzipCmd.Wait(); err != nil {
+		os.Remove(filepath)
+		return "", 0, fmt.Errorf("gzip 执行失败: %w", err)
+	}
+	outFile.Close()
+
+	info, err := os.Stat(filepath)
+	if err != nil {
+		return "", 0, fmt.Errorf("获取文件大小失败: %w", err)
+	}
+
+	return filename, info.Size(), nil
 }
 
 func (s *DbBackupService) Delete(id int64) error {

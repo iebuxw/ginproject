@@ -5,11 +5,20 @@ Go(Gin) + Vue2 (Element UI) 单体仓库。UI 全中文，注释倾向中文。
 ## 快速开始
 
 ```bash
-docker compose up -d           # 启动所有服务
+./gen-cert.sh              # 首次部署/换机器：生成自签证书（certs/ 不入库）
+docker compose up -d       # 启动所有服务
 ```
 
-- 访问地址：http://localhost:8080（nginx → Vue SPA，`/api` 代理到 go-app:8000）
+- 访问地址：https://localhost:8443（自签证书，浏览器首次访问需点"高级 → 继续访问"）
+- 访问 http://localhost:8080 会自动 301 跳转到 https://localhost:8443
 - 默认账号：`admin` / `123456`
+
+## HTTPS 与证书
+
+- `certs/` 目录不入库（`.gitignore` 已排除），私钥不随代码分发
+- **换机器或重新克隆后**：先运行 `./gen-cert.sh` 生成证书，再 `docker compose up -d --build nginx`
+- 脚本幂等：`certs/server.crt` 与 `certs/server.key` 已存在时跳过，不会覆盖既有证书
+- 证书有效期 10 年（SAN: localhost / 127.0.0.1），过期后删除 `certs/` 重跑脚本即可
 
 ## 数据库连接命令
 

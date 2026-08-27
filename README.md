@@ -41,10 +41,12 @@ docker exec -it ginadmin-redis redis-cli
 | 服务 | 端口 | 账号 |
 |---|---|---|
 | go-app | 8000 | - |
-| nginx | 8080 | - |
+| nginx | 8080（HTTPS 8443） | - |
 | mysql | 容器3306 / 宿主3307 | root / admin123 |
 | redis | 容器6379 / 宿主6380 | 无密码 |
 | rabbitmq | 5672（管理台 15672） | guest / guest |
+| elasticsearch | 9200 | - |
+| kibana | 5601 | - |
 
 ## 常用开发命令
 
@@ -69,20 +71,12 @@ docker compose up -d                   # 启动全部
 
 ### 迁移文件结构
 
-```
-migrations/
-  000001_create_schema.up.sql          # 建表（10张表）
-  000001_create_schema.down.sql        # 删表（回滚）
-  000002_seed_menus.up.sql             # 菜单种子数据（31条）
-  000002_seed_menus.down.sql           # 清空菜单
-  000003_seed_admin_and_dict.up.sql    # admin用户、角色、字典种子
-  000003_seed_admin_and_dict.down.sql  # 清空用户/角色/字典
-```
+`migrations/` 目录存放成对的 `.up.sql` / `.down.sql` 文件，按 `00000N` 递增编号，具体文件以目录现状为准。
 
 ### 新增迁移
 
 1. 在 `migrations/` 目录创建新的 `.up.sql` 和 `.down.sql` 文件
-2. 文件名递增，如 `000004_add_xxx.up.sql`
+2. 文件名递增，如 `000012_add_xxx.up.sql`
 3. 重启应用自动执行：`docker compose up -d --build go-app`
 
 ### 迁移规范
@@ -92,6 +86,26 @@ migrations/
 - 种子数据必须指定 `id` 列，防止自动分配导致重复
 - `down.sql` 按外键依赖逆序删除
 
+## 功能模块
+
+| 模块 | 说明 | 前端页面 | 权限点 |
+|---|---|---|---|
+| 仪表盘 | CPU/内存/磁盘/Go 运行时信息 | /dashboard（登录默认页） | - |
+| 用户管理 | 用户 CRUD | /system/user | user:* |
+| 角色管理 | 角色 CRUD 与菜单授权 | /system/role | role:* |
+| 菜单管理 | 菜单/权限点维护，前端路由由菜单树动态生成 | /system/menu | menu:* |
+| 数据字典 | 字典类型+字典项（下拉框配置） | /system/dict-type | dict:* |
+| 操作日志 | 请求记录 + ES 全文检索，支持 Excel 异步导出 | /system/log | log:* |
+| 登录日志 | 登录成功/失败记录 | /system/login-log | login-log:list |
+| 定时任务 | 6 段 cron，命令/HTTP 两种模式，执行日志，立即执行 | /system/task（执行日志 /system/task-logs） | cron:* |
+| 数据库备份 | mysqldump 备份/恢复，恢复前自动创建快照，恢复需输入"确认恢复" | /system/backup | db_backup:* |
+
+### 后台能力（无页面）
+
+- **登录异常邮件告警**：登录失败发布 RabbitMQ 消息 + Redis 限频，worker 消费后 SMTP 发信
+- **异步导出**：RabbitMQ 队列消费生成 Excel，完成后经 WebSocket（`/api/ws`，按 user_id 推送）通知前端
+- **操作日志双写**：MySQL 落库 + Elasticsearch（IK 中文分词）全文检索，ES 不可用时自动降级为 MySQL
+
 ## 数据字典
 
 管理系统中的下拉框选项、状态码、类型枚举等配置数据。
@@ -100,7 +114,7 @@ migrations/
 
 - **字典类型**：定义字典分类（如性别、状态），code 唯一
 - **字典数据**：每个类型下的具体选项（如 男=1，女=2）
-- **前端路由**：`/system/dict-type`，左右分栏布局
+- **前端路由**：`/system/dict-type`，类型列表 + 字典项抽屉
 
 ### API
 
@@ -109,6 +123,7 @@ migrations/
 | GET/POST | `/api/dict-types` | 字典类型列表/新增 |
 | GET/PUT/DELETE | `/api/dict-types/:id` | 字典类型详情/编辑/删除 |
 | GET/POST | `/api/dict-data` | 字典数据列表/新增 |
+| GET | `/api/dict-data/by-code/:code` | 按类型编码取字典数据（下拉框用） |
 | GET/PUT/DELETE | `/api/dict-data/:id` | 字典数据详情/编辑/删除 |
 
 ### 使用示例

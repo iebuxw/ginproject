@@ -9,3 +9,4 @@ web/dist/
 *.log
 exports/
 backups/
+certs/

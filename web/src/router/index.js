@@ -12,6 +12,17 @@ export const constantRoutes = [
     hidden: true
   },
   {
+    path: '/redirect',
+    component: Layout,
+    hidden: true,
+    children: [
+      {
+        path: '/redirect/:path(.*)',
+        component: () => import('@/views/redirect/index.vue')
+      }
+    ]
+  },
+  {
     path: '/',
     component: Layout,
     redirect: '/dashboard',
@@ -20,7 +31,13 @@ export const constantRoutes = [
         path: 'dashboard',
         component: () => import('@/views/dashboard/index.vue'),
         name: 'Dashboard',
-        meta: { title: '控制台' }
+        meta: { title: '控制台', affix: true }
+      },
+      {
+        path: 'profile',
+        component: () => import('@/views/profile/index.vue'),
+        name: 'Profile',
+        meta: { title: '个人中心' }
       }
     ]
   }
@@ -51,6 +68,9 @@ router.beforeEach(async (to, from, next) => {
       next('/login')
     }
   } else {
+    if (to.name) {
+      store.dispatch('tagsView/addView', to)
+    }
     next()
   }
 })

@@ -33,12 +33,14 @@ func (s *DbBackupService) Backup(triggerType string) (*model.DbBackup, error) {
 	filename := fmt.Sprintf("%s_%s.sql.gz", s.cfg.Database.DBName, time.Now().Format("20060102_150405"))
 	filepath := filepath.Join(s.backupDir, filename)
 
+	// 排除 db_backups 表，避免恢复时覆盖备份记录
 	cmd := exec.Command("mysqldump",
 		"-h"+s.cfg.Database.Host,
 		"-P"+s.cfg.Database.Port,
 		"-u"+s.cfg.Database.User,
 		"-p"+s.cfg.Database.Password,
 		"--skip-ssl",
+		"--ignore-table="+s.cfg.Database.DBName+".db_backups",
 		s.cfg.Database.DBName,
 	)
 
@@ -155,6 +157,7 @@ func (s *DbBackupService) snapshotFile() (string, int64, error) {
 		"-u"+s.cfg.Database.User,
 		"-p"+s.cfg.Database.Password,
 		"--skip-ssl",
+		"--ignore-table="+s.cfg.Database.DBName+".db_backups",
 		s.cfg.Database.DBName,
 	)
 

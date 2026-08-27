@@ -129,6 +129,8 @@ User ──N:M── Role ──N:M── Menu
 
 - `db_backups` 表存储备份记录，`backups/` 目录存放 `.sql.gz` 文件（已 gitignore）
 - 备份通过 `os/exec` 调用 `mysqldump | gzip`，恢复用 `gunzip -c | mysql`
+- **mysqldump 必须排除 `db_backups` 表**（`--ignore-table`），否则恢复时会丢失备份记录
+- 恢复前自动创建快照（type=snapshot），记录来源信息到 remark
 - Docker 镜像需安装 `mysql-client` + `gzip`（见 `docker/Dockerfile`）
 - `backup_db` 和 `clean_backup` 为预定义命令，注册在 `scheduler/commands.go`，在 `main.go` 注入真实实现
 - 前端 `web/src/views/backup/index.vue`，路由权限 `db_backup:*`

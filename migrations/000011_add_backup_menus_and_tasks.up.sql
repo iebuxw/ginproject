@@ -27,7 +27,7 @@ INSERT IGNORE INTO role_menus (role_id, menu_id)
 VALUES (1, 51), (1, 52), (1, 53), (1, 54), (1, 55);
 
 -- 定时任务种子
-INSERT INTO cron_tasks (id, name, command, cron, timeout, status, remark)
+INSERT INTO cron_tasks (id, name, command, url, method, cron, timeout, status, remark)
 VALUES
-(10, '数据库备份', 'backup_db', '0 0 2 * * *', 300, 1, '每天凌晨2点自动备份数据库'),
-(11, '清理过期备份', 'clean_backup', '0 0 4 * * *', 60, 1, '每天凌晨4点清理90天前备份');
+(10, '数据库备份', 'backup_db', '', 'GET', '0 0 2 * * *', 300, 1, '每天凌晨2点自动备份数据库'),
+(11, '清理过期备份', 'clean_backup', '', 'GET', '0 0 4 * * *', 60, 1, '每天凌晨4点清理90天前备份');

@@ -38,6 +38,7 @@ func (s *DbBackupService) Backup(triggerType string) (*model.DbBackup, error) {
 		"-P"+s.cfg.Database.Port,
 		"-u"+s.cfg.Database.User,
 		"-p"+s.cfg.Database.Password,
+		"--skip-ssl",
 		s.cfg.Database.DBName,
 	)
 
@@ -98,7 +99,7 @@ func (s *DbBackupService) Restore(id int64) error {
 		return fmt.Errorf("备份文件不存在: %s", backup.Filename)
 	}
 
-	mysqlConn := fmt.Sprintf("mysql -h%s -P%s -u%s -p%s %s",
+	mysqlConn := fmt.Sprintf("mysql -h%s -P%s -u%s -p%s --skip-ssl %s",
 		s.cfg.Database.Host, s.cfg.Database.Port, s.cfg.Database.User, s.cfg.Database.Password, s.cfg.Database.DBName)
 
 	cmds := []string{

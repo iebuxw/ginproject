@@ -1,5 +1,14 @@
 <template>
   <div>
+    <el-alert
+      v-if="backingUp"
+      title="备份已在后台执行，请稍后刷新"
+      type="success"
+      :closable="false"
+      show-icon
+      style="margin-bottom:15px">
+    </el-alert>
+
     <el-card>
       <div slot="header"><span>数据库备份</span></div>
       <el-form :inline="true">
@@ -24,7 +33,7 @@
         </el-form-item>
       </el-form>
 
-      <el-table :data="list" border>
+      <el-table :data="list" border v-loading="loading">
         <el-table-column prop="id" label="ID" width="80"></el-table-column>
         <el-table-column prop="filename" label="文件名" min-width="200"></el-table-column>
         <el-table-column label="文件大小" width="120">
@@ -41,18 +50,21 @@
         </el-table-column>
         <el-table-column label="状态" width="80">
           <template slot-scope="{row}">
-            <el-tag :type="row.status === 0 ? 'success' : 'danger'">
-              {{ row.status === 0 ? '成功' : '失败' }}
-            </el-tag>
+            <el-tag v-if="row.status === -1" type="warning">备份中...</el-tag>
+            <el-tag v-else-if="row.status === 0" type="success">成功</el-tag>
+            <el-tag v-else type="danger">失败</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="remark" label="备注" min-width="150"></el-table-column>
         <el-table-column prop="created_at" label="创建时间" width="180"></el-table-column>
         <el-table-column label="操作" width="200" fixed="right">
           <template slot-scope="{row}">
-            <el-button type="text" size="small" @click="handleRestore(row)">恢复</el-button>
-            <el-button type="text" size="small" @click="handleDownload(row)">下载</el-button>
-            <el-button type="text" size="small" style="color:#F56C6C" @click="handleDelete(row)">删除</el-button>
+            <template v-if="row.status !== -1">
+              <el-button type="text" size="small" @click="handleRestore(row)">恢复</el-button>
+              <el-button type="text" size="small" @click="handleDownload(row)">下载</el-button>
+              <el-button type="text" size="small" style="color:#F56C6C" @click="handleDelete(row)">删除</el-button>
+            </template>
+            <span v-else style="color:#909399">-</span>
           </template>
         </el-table-column>
       </el-table>
@@ -94,6 +106,9 @@ export default {
       list: [], page: 1, pageSize: 10, total: 0,
       filters: { dateRange: [] },
       creating: false,
+      loading: false,
+      backingUp: false,
+      pollingTimer: null,
       restoreDialogVisible: false,
       restoreConfirmText: '',
       restoring: false,
@@ -101,6 +116,9 @@ export default {
     }
   },
   created() { this.fetchData() },
+  beforeDestroy() {
+    this.stopPolling()
+  },
   methods: {
     async fetchData() {
       const params = { page: this.page, page_size: this.pageSize }
@@ -111,6 +129,15 @@ export default {
       const res = await getBackups(params)
       this.list = res.data.list
       this.total = res.data.total
+
+      // 检测备份是否完成（轮询时）
+      if (this.backingUp) {
+        const hasPending = this.list.some(r => r.status === -1)
+        if (!hasPending) {
+          this.stopPolling()
+          this.$message.success('备份已完成')
+        }
+      }
     },
     pageChange(p) { this.page = p; this.fetchData() },
     formatSize(bytes) {
@@ -124,12 +151,38 @@ export default {
       this.creating = true
       try {
         await createBackup()
+        // 在列表顶部插入临时记录
+        this.list.unshift({
+          id: '-',
+          filename: '-',
+          file_size: '-',
+          trigger_type: 'manual',
+          status: -1,
+          type: 'backup',
+          remark: '备份中...',
+          created_at: new Date().toLocaleString()
+        })
+        this.total += 1
+        this.backingUp = true
+        this.startPolling()
         this.$message.success('备份任务已提交')
-        this.fetchData()
       } catch (e) {
         this.$message.error('备份失败')
       }
       this.creating = false
+    },
+    startPolling() {
+      this.stopPolling()
+      this.pollingTimer = setInterval(() => {
+        this.fetchData()
+      }, 3000)
+    },
+    stopPolling() {
+      if (this.pollingTimer) {
+        clearInterval(this.pollingTimer)
+        this.pollingTimer = null
+      }
+      this.backingUp = false
     },
     handleRestore(row) {
       this.currentRestoreRow = row

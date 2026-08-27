@@ -184,9 +184,10 @@ func main() {
 	cronTaskService := service.NewCronTaskService(cronTaskDAO, cronTaskExecutionDAO, taskScheduler)
 	cronTaskCtrl := controller.NewCronTaskController(cronTaskService)
 	dbBackupCtrl := controller.NewDbBackupController(dbBackupService)
+	dashboardCtrl := controller.NewDashboardController()
 
 	// Router
-	r := router.Setup(cfg, authCtrl, userCtrl, roleCtrl, menuCtrl, logCtrl, loginLogCtrl, wsCtrl, authService, userDAO, menuDAO, logDAO, logRepo, dictTypeCtrl, dictDataCtrl, cronTaskCtrl, dbBackupCtrl)
+	r := router.Setup(cfg, authCtrl, userCtrl, roleCtrl, menuCtrl, logCtrl, loginLogCtrl, wsCtrl, authService, userDAO, menuDAO, logDAO, logRepo, dictTypeCtrl, dictDataCtrl, cronTaskCtrl, dbBackupCtrl, dashboardCtrl)
 
 	log.Printf("Server running on :%s", cfg.Server.Port)
 	if err := r.Run(":" + cfg.Server.Port); err != nil {

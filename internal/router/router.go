@@ -33,6 +33,7 @@ func Setup(
 	dictDataCtrl *controller.DictDataController,
 	taskCtrl *controller.CronTaskController,
 	dbBackupCtrl *controller.DbBackupController,
+	dashboardCtrl *controller.DashboardController,
 ) *gin.Engine {
 	r := gin.Default()
 	r.Use(middleware.CORS())
@@ -162,6 +163,9 @@ func Setup(
 			middleware.RequirePerm("db_backup:delete"), middleware.RBAC(menuDAO), dbBackupCtrl.Delete)
 		authorized.GET("/db-backups/:id/download",
 			middleware.RequirePerm("db_backup:download"), middleware.RBAC(menuDAO), dbBackupCtrl.Download)
+
+		// 仪表盘
+		authorized.GET("/dashboard/server-info", dashboardCtrl.GetServerInfo)
 	}
 
 	// WebSocket

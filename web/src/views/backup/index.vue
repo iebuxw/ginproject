@@ -141,6 +141,7 @@ export default {
     },
     pageChange(p) { this.page = p; this.fetchData() },
     formatSize(bytes) {
+      if (!bytes || isNaN(bytes)) return '-'
       if (bytes === 0) return '0 B'
       const k = 1024
       const sizes = ['B', 'KB', 'MB', 'GB']

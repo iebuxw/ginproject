@@ -155,7 +155,9 @@ User ──N:M── Role ──N:M── Menu
 - 用户管理 CRUD 不支持分配角色
 - `.env`、`web/dist/`、`exports/`、`backups/` 均 gitignore，Docker 在构建阶段自行编译前端
 - Redis 是 `redis:3.2-alpine`，**不支持 HSET 多字段**（4.0+ 才支持），多字段需拆成单字段调用
-- 前端是 **Vue 2 + Element UI**（不是 Vue 3）；`web/src/store/modules/permission.js` 用后端菜单树动态生成路由
+- 前端是 **Vue 2 + Element UI**（不是 Vue 3）；`web/src/store/modules/permission.js` 用后端菜单树动态生成路由，**新增菜单必须在 `componentMap` 中添加路由映射**
+- Docker 容器内 `mysql-client` 实际是 `mariadb-client`，mysqldump/mysql 命令需用 `--skip-ssl`（不支持 `--ssl-mode`）
+- `cron_tasks` 表 `url`、`method` 字段为 NOT NULL，command 模式的种子数据也必须提供空字符串
 - RabbitMQ 是 `rabbitmq:3-management`，通过 `amqp091-go` 连接
 - WebSocket 走 `gorilla/websocket`，nginx 需配置 `proxy_set_header Upgrade $http_upgrade` 转发 WebSocket 升级头
 - `DateTime` 类型不会触发 GORM 自动时间戳，需手动设置 `CreatedAt`

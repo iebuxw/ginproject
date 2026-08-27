@@ -19,13 +19,14 @@ import (
 type AuthController struct {
 	authService     *service.AuthService
 	menuDAO         *dao.MenuDAO
+	userDAO         *dao.UserDAO
 	loginLogService *service.LoginLogService
 	rdb             *redis.Client
 	publishCh       *amqp091.Channel
 }
 
-func NewAuthController(authService *service.AuthService, menuDAO *dao.MenuDAO, loginLogService *service.LoginLogService, rdb *redis.Client, publishCh *amqp091.Channel) *AuthController {
-	return &AuthController{authService, menuDAO, loginLogService, rdb, publishCh}
+func NewAuthController(authService *service.AuthService, menuDAO *dao.MenuDAO, userDAO *dao.UserDAO, loginLogService *service.LoginLogService, rdb *redis.Client, publishCh *amqp091.Channel) *AuthController {
+	return &AuthController{authService, menuDAO, userDAO, loginLogService, rdb, publishCh}
 }
 
 // alertMailLimitTTL 同一 IP 的登录告警邮件限频窗口
@@ -148,14 +149,19 @@ func (ctl *AuthController) ChangePassword(c *gin.Context) {
 // @Router /auth/userinfo [get]
 func (ctl *AuthController) UserInfo(c *gin.Context) {
 	userID, _ := c.Get("user_id")
-	username, _ := c.Get("username")
 	rolesVal, _ := c.Get("roles")
 
+	uid, _ := userID.(uint)
 	var roleIDs []uint
+	var avatar string
 	if roles, ok := rolesVal.([]model.Role); ok {
 		for _, r := range roles {
 			roleIDs = append(roleIDs, r.ID)
 		}
+	}
+	// 查库获取头像等完整信息
+	if user, err := ctl.userDAO.FindByID(uid); err == nil {
+		avatar = user.Avatar
 	}
 	menus, _ := ctl.menuDAO.FindByRoleIDs(roleIDs)
 	menuTree := dao.BuildMenuTree(menus, 0)
@@ -167,7 +173,8 @@ func (ctl *AuthController) UserInfo(c *gin.Context) {
 	}
 	utils.Success(c, gin.H{
 		"id":          userID,
-		"username":    username,
+		"username":    c.GetString("username"),
+		"avatar":      avatar,
 		"menus":       menuTree,
 		"permissions": permissions,
 	})

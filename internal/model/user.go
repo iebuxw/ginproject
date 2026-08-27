@@ -9,6 +9,7 @@ type User struct {
 	Email       string     `gorm:"size:128" json:"email"`
 	Phone       string     `gorm:"size:20" json:"phone"`
 	Description string     `gorm:"size:255" json:"description"`
+	Avatar      string     `gorm:"size:255" json:"avatar"`
 	Status      int        `gorm:"default:1" json:"status"`
 	LastLoginAt *time.Time `json:"last_login_at"`
 	CreatedAt   time.Time  `json:"created_at"`

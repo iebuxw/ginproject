@@ -8,6 +8,11 @@
       <el-input v-model="keyword" placeholder="搜索用户名/邮箱" style="width:250px;margin-bottom:10px" @keyup.enter.native="fetchData" clearable @clear="fetchData"></el-input>
       <el-table :data="list" border>
         <el-table-column prop="id" label="ID" width="60"></el-table-column>
+        <el-table-column label="头像" width="80">
+          <template slot-scope="s">
+            <el-avatar :size="36" :src="s.row.avatar">{{ (s.row.username || '').charAt(0) }}</el-avatar>
+          </template>
+        </el-table-column>
         <el-table-column prop="username" label="用户名"></el-table-column>
         <el-table-column prop="email" label="邮箱"></el-table-column>
         <el-table-column prop="phone" label="手机号"></el-table-column>
@@ -34,6 +39,18 @@
 
     <el-dialog :title="isEdit ? '编辑用户' : '新增用户'" :visible.sync="dialogVisible" width="500px">
       <el-form :model="form" label-width="80px">
+        <el-form-item label="头像">
+          <el-upload
+            action="/api/upload/avatar"
+            :headers="uploadHeaders"
+            :show-file-list="false"
+            :on-success="handleAvatarSuccess"
+            :before-upload="beforeAvatarUpload"
+          >
+            <el-avatar :size="60" :src="form.avatar">{{ (form.username || '').charAt(0) }}</el-avatar>
+            <div style="margin-top:4px"><el-button size="mini" type="text">上传头像</el-button></div>
+          </el-upload>
+        </el-form-item>
         <el-form-item label="用户名"><el-input v-model="form.username"></el-input></el-form-item>
         <el-form-item label="密码"><el-input v-model="form.password" type="password" :placeholder="isEdit ? '留空不修改' : ''"></el-input></el-form-item>
         <el-form-item label="邮箱"><el-input v-model="form.email"></el-input></el-form-item>
@@ -52,18 +69,34 @@
 </template>
 <script>
 import { getUsers, addUser, updateUser, deleteUser } from '@/api/user'
+import store from '@/store'
 import { getRoles } from '@/api/role'
 export default {
   data() {
     return {
       list: [], page: 1, pageSize: 10, total: 0, keyword: '',
       dialogVisible: false, isEdit: false,
-      form: { username: '', password: '', email: '', phone: '', description: '', status: 1, role_ids: [] },
+      form: { username: '', password: '', email: '', phone: '', description: '', avatar: '', status: 1, role_ids: [] },
       allRoles: []
     }
   },
   created() { this.fetchData(); this.fetchRoles() },
+  computed: {
+    uploadHeaders() {
+      return { Authorization: 'Bearer ' + store.state.user.token }
+    }
+  },
   methods: {
+    handleAvatarSuccess(res) {
+      if (res.code === 200) { this.form.avatar = res.data.url }
+    },
+    beforeAvatarUpload(file) {
+      const isImage = ['image/jpeg', 'image/png', 'image/gif'].includes(file.type)
+      const isLt2M = file.size / 1024 / 1024 < 2
+      if (!isImage) { this.$message.error('只能上传 jpg/png/gif 格式') }
+      if (!isLt2M) { this.$message.error('图片大小不能超过 2MB') }
+      return isImage && isLt2M
+    },
     async fetchData() {
       const res = await getUsers({ page: this.page, page_size: this.pageSize, keyword: this.keyword })
       this.list = res.data.list; this.total = res.data.total
@@ -79,7 +112,7 @@ export default {
         this.form = { ...row, password: '', role_ids: (row.roles || []).map(r => r.id) }
       } else {
         this.isEdit = false
-        this.form = { username: '', password: '', email: '', phone: '', description: '', status: 1, role_ids: [] }
+        this.form = { username: '', password: '', email: '', phone: '', description: '', avatar: '', status: 1, role_ids: [] }
       }
       this.dialogVisible = true
     },

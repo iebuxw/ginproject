@@ -9,6 +9,7 @@ const state = {
 const mutations = {
   SET_TOKEN(state, token) { state.token = token; localStorage.setItem('token', token) },
   SET_USER_INFO(state, info) { state.userInfo = info },
+  SET_AVATAR(state, url) { state.userInfo.avatar = url },
   CLEAR(state) { state.token = ''; state.userInfo = {}; localStorage.removeItem('token') }
 }
 

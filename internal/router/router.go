@@ -24,6 +24,7 @@ func Setup(
 	logCtrl *controller.LogController,
 	loginLogCtrl *controller.LoginLogController,
 	wsCtrl *controller.WSController,
+	uploadCtrl *controller.UploadController,
 	authService *service.AuthService,
 	userDAO *dao.UserDAO,
 	menuDAO *dao.MenuDAO,
@@ -37,6 +38,9 @@ func Setup(
 ) *gin.Engine {
 	r := gin.Default()
 	r.Use(middleware.CORS())
+
+	// 静态文件服务（头像等上传文件）
+	r.Static("/api/uploads", "./uploads")
 
 	api := r.Group("/api")
 
@@ -53,6 +57,9 @@ func Setup(
 		authorized.POST("/auth/logout", authCtrl.Logout)
 		authorized.POST("/auth/change-password", middleware.OperationLogger(logDAO, logRepo), authCtrl.ChangePassword)
 		authorized.GET("/auth/userinfo", authCtrl.UserInfo)
+
+		// 文件上传
+		authorized.POST("/upload/avatar", uploadCtrl.UploadAvatar)
 
 		// 用户管理
 		authorized.GET("/users",

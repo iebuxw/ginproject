@@ -19,17 +19,29 @@ func (d *UserDAO) Update(u *model.User) error {
 		if err := tx.Model(u).Association("Roles").Replace(u.Roles); err != nil {
 			return err
 		}
-		q := tx.Omit("created_at")
-		// 密码为空时表示不修改密码，避免全字段覆盖把密码清空
-		if u.Password == "" {
-			q = q.Omit("password")
+		updates := map[string]interface{}{
+			"username":    u.Username,
+			"email":       u.Email,
+			"phone":       u.Phone,
+			"description": u.Description,
+			"status":      u.Status,
 		}
-		return q.Save(u).Error
+		if u.Password != "" {
+			updates["password"] = u.Password
+		}
+		if u.Avatar != "" {
+			updates["avatar"] = u.Avatar
+		}
+		return tx.Model(u).Updates(updates).Error
 	})
 }
 
 func (d *UserDAO) Delete(id uint) error {
 	return d.db.Delete(&model.User{}, id).Error
+}
+
+func (d *UserDAO) UpdateAvatar(userID uint, avatar string) error {
+	return d.db.Model(&model.User{}).Where("id = ?", userID).Update("avatar", avatar).Error
 }
 
 func (d *UserDAO) FindByID(id uint) (*model.User, error) {

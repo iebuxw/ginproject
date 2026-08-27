@@ -173,7 +173,7 @@ func main() {
 	go taskScheduler.Start()
 
 	// Controller
-	authCtrl := controller.NewAuthController(authService, menuDAO, loginLogService, rdb, publishCh)
+	authCtrl := controller.NewAuthController(authService, menuDAO, userDAO, loginLogService, rdb, publishCh)
 	userCtrl := controller.NewUserController(userService)
 	roleCtrl := controller.NewRoleController(roleService)
 	menuCtrl := controller.NewMenuController(menuService)
@@ -185,9 +185,10 @@ func main() {
 	cronTaskCtrl := controller.NewCronTaskController(cronTaskService)
 	dbBackupCtrl := controller.NewDbBackupController(dbBackupService)
 	dashboardCtrl := controller.NewDashboardController()
+	uploadCtrl := controller.NewUploadController(userDAO)
 
 	// Router
-	r := router.Setup(cfg, authCtrl, userCtrl, roleCtrl, menuCtrl, logCtrl, loginLogCtrl, wsCtrl, authService, userDAO, menuDAO, logDAO, logRepo, dictTypeCtrl, dictDataCtrl, cronTaskCtrl, dbBackupCtrl, dashboardCtrl)
+	r := router.Setup(cfg, authCtrl, userCtrl, roleCtrl, menuCtrl, logCtrl, loginLogCtrl, wsCtrl, uploadCtrl, authService, userDAO, menuDAO, logDAO, logRepo, dictTypeCtrl, dictDataCtrl, cronTaskCtrl, dbBackupCtrl, dashboardCtrl)
 
 	log.Printf("Server running on :%s", cfg.Server.Port)
 	if err := r.Run(":" + cfg.Server.Port); err != nil {

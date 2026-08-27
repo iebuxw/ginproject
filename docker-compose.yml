@@ -60,6 +60,8 @@ services:
     restart: always
     ports:
       - "8000:8000"
+    volumes:
+      - uploads:/app/uploads
     depends_on:
       mysql:
         condition: service_healthy
@@ -118,3 +120,4 @@ volumes:
   mysql-data:
   redis-data:
   es-data:
+  uploads:

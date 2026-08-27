@@ -30,6 +30,13 @@ var Commands = map[string]CommandDef{
 			return CommandResult{}, fmt.Errorf("命令未实现")
 		},
 	},
+	"clean_backup": {
+		Name:   "clean_backup",
+		Label:  "清理过期备份",
+		Handler: func(days int) (CommandResult, error) {
+			return CommandResult{}, fmt.Errorf("命令未实现")
+		},
+	},
 }
 
 // CommandList 返回所有预定义命令的 name + label（供前端下拉使用）

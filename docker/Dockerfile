@@ -17,7 +17,7 @@ RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o server ./cmd/server/
 FROM alpine:3
 
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories \
-    && apk add --no-cache ca-certificates tzdata \
+    && apk add --no-cache ca-certificates tzdata mysql-client gzip \
     && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
 WORKDIR /app

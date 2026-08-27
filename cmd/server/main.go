@@ -77,6 +77,7 @@ func main() {
 	dictDataDAO := dao.NewDictDataDAO(db)
 	cronTaskDAO := dao.NewCronTaskDAO(db)
 	cronTaskExecutionDAO := dao.NewCronTaskExecutionDAO(db)
+	dbBackupDAO := dao.NewDbBackupDAO(db)
 
 	// Service
 	authService := service.NewAuthService(userDAO, rdb, cfg)
@@ -88,6 +89,7 @@ func main() {
 	alertMailService := service.NewAlertMailService(cfg)
 	dictTypeService := service.NewDictTypeService(dictTypeDAO, dictDataDAO)
 	dictDataService := service.NewDictDataService(dictDataDAO)
+	dbBackupService := service.NewDbBackupService(dbBackupDAO, cfg)
 
 	// RabbitMQ
 	amqpConn, err := amqp091.Dial(cfg.RabbitMQ.DSN())
@@ -135,6 +137,38 @@ func main() {
 			}, nil
 		},
 	}
+
+	scheduler.Commands["backup_db"] = scheduler.CommandDef{
+		Name:   "backup_db",
+		Label:  "数据库备份",
+		Handler: func(days int) (scheduler.CommandResult, error) {
+			backup, err := dbBackupService.Backup("cron")
+			if err != nil {
+				return scheduler.CommandResult{}, err
+			}
+			return scheduler.CommandResult{
+				Message: fmt.Sprintf("备份完成: %s (%d bytes)", backup.Filename, backup.FileSize),
+			}, nil
+		},
+	}
+
+	scheduler.Commands["clean_backup"] = scheduler.CommandDef{
+		Name:   "clean_backup",
+		Label:  "清理过期备份",
+		Handler: func(days int) (scheduler.CommandResult, error) {
+			if days < 1 || days > 3650 {
+				days = 90
+			}
+			n, err := dbBackupService.Cleanup(days)
+			if err != nil {
+				return scheduler.CommandResult{}, err
+			}
+			return scheduler.CommandResult{
+				Message: fmt.Sprintf("清理完成: %d 条过期备份", n),
+			}, nil
+		},
+	}
+
 	taskScheduler := scheduler.NewScheduler(cronTaskDAO, cronTaskExecutionDAO)
 	go taskScheduler.Start()
 
@@ -149,9 +183,10 @@ func main() {
 	dictDataCtrl := controller.NewDictDataController(dictDataService)
 	cronTaskService := service.NewCronTaskService(cronTaskDAO, cronTaskExecutionDAO, taskScheduler)
 	cronTaskCtrl := controller.NewCronTaskController(cronTaskService)
+	dbBackupCtrl := controller.NewDbBackupController(dbBackupService)
 
 	// Router
-	r := router.Setup(cfg, authCtrl, userCtrl, roleCtrl, menuCtrl, logCtrl, loginLogCtrl, wsCtrl, authService, userDAO, menuDAO, logDAO, logRepo, dictTypeCtrl, dictDataCtrl, cronTaskCtrl)
+	r := router.Setup(cfg, authCtrl, userCtrl, roleCtrl, menuCtrl, logCtrl, loginLogCtrl, wsCtrl, authService, userDAO, menuDAO, logDAO, logRepo, dictTypeCtrl, dictDataCtrl, cronTaskCtrl, dbBackupCtrl)
 
 	log.Printf("Server running on :%s", cfg.Server.Port)
 	if err := r.Run(":" + cfg.Server.Port); err != nil {

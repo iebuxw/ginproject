@@ -32,6 +32,7 @@ func Setup(
 	dictTypeCtrl *controller.DictTypeController,
 	dictDataCtrl *controller.DictDataController,
 	taskCtrl *controller.CronTaskController,
+	dbBackupCtrl *controller.DbBackupController,
 ) *gin.Engine {
 	r := gin.Default()
 	r.Use(middleware.CORS())
@@ -149,6 +150,18 @@ func Setup(
 			middleware.RequirePerm("cron:run"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), taskCtrl.Run)
 		authorized.GET("/cron-tasks/:id/executions",
 			middleware.RequirePerm("cron:log"), middleware.RBAC(menuDAO), taskCtrl.Executions)
+
+		// 数据库备份
+		authorized.GET("/db-backups",
+			middleware.RequirePerm("db_backup:list"), middleware.RBAC(menuDAO), dbBackupCtrl.List)
+		authorized.POST("/db-backups",
+			middleware.RequirePerm("db_backup:add"), middleware.RBAC(menuDAO), dbBackupCtrl.Create)
+		authorized.POST("/db-backups/:id/restore",
+			middleware.RequirePerm("db_backup:restore"), middleware.RBAC(menuDAO), dbBackupCtrl.Restore)
+		authorized.DELETE("/db-backups/:id",
+			middleware.RequirePerm("db_backup:delete"), middleware.RBAC(menuDAO), dbBackupCtrl.Delete)
+		authorized.GET("/db-backups/:id/download",
+			middleware.RequirePerm("db_backup:download"), middleware.RBAC(menuDAO), dbBackupCtrl.Download)
 	}
 
 	// WebSocket

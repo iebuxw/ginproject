@@ -125,6 +125,15 @@ User ──N:M── Role ──N:M── Menu
 
 **Excel 写逻辑务必用 `StreamWriter.SetRow`，不要和 `SetCellValue` 混用**（混用会导致表头丢失）。
 
+### 数据库备份与恢复
+
+- `db_backups` 表存储备份记录，`backups/` 目录存放 `.sql.gz` 文件（已 gitignore）
+- 备份通过 `os/exec` 调用 `mysqldump | gzip`，恢复用 `gunzip -c | mysql`
+- Docker 镜像需安装 `mysql-client` + `gzip`（见 `docker/Dockerfile`）
+- `backup_db` 和 `clean_backup` 为预定义命令，注册在 `scheduler/commands.go`，在 `main.go` 注入真实实现
+- 前端 `web/src/views/backup/index.vue`，路由权限 `db_backup:*`
+- 恢复操作需在对话框中输入"确认恢复"才能点击确认按钮
+
 ### 定时任务（CronTask）
 
 - `cron_tasks`（任务）+ `cron_task_executions`（执行日志）两张表；Cron 表达式为 **6 段（秒 分 时 日 月 周）**，非标准 5 段
@@ -144,7 +153,7 @@ User ──N:M── Role ──N:M── Menu
 - `utils.Error` 返回 HTTP 200（业务错误码），需要改 HTTP 状态码用 `ErrorWithStatus`
 - `OperationLog.Module` / `Action` 字段中间件未填充，当前始终为空
 - 用户管理 CRUD 不支持分配角色
-- `.env`、`web/dist/`、`exports/` 均 gitignore，Docker 在构建阶段自行编译前端
+- `.env`、`web/dist/`、`exports/`、`backups/` 均 gitignore，Docker 在构建阶段自行编译前端
 - Redis 是 `redis:3.2-alpine`，**不支持 HSET 多字段**（4.0+ 才支持），多字段需拆成单字段调用
 - 前端是 **Vue 2 + Element UI**（不是 Vue 3）；`web/src/store/modules/permission.js` 用后端菜单树动态生成路由
 - RabbitMQ 是 `rabbitmq:3-management`，通过 `amqp091-go` 连接

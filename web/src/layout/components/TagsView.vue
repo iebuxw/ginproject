@@ -102,12 +102,13 @@ export default {
       return tags
     },
     initTags() {
-      const affixTags = this.filterAffixTags(this.routes)
+      const affixTags = this.filterAffixTags(this.$router.options.routes.concat(this.routes))
       for (const tag of affixTags) {
         if (tag.name) {
           this.$store.dispatch('tagsView/addVisitedView', tag)
         }
       }
+      this.$store.commit('tagsView/SORT_VISITED_VIEWS')
     },
     addTags() {
       const { name } = this.$route
@@ -125,7 +126,7 @@ export default {
       this.closeMenu()
     },
     closeTag(tag) {
-      this.$store.dispatch('tagsView/delView', tag).then(visitedViews => {
+      this.$store.dispatch('tagsView/delView', tag).then(({ visitedViews }) => {
         if (this.isActive(tag)) {
           this.toLastView(visitedViews)
         }
@@ -133,7 +134,7 @@ export default {
       this.closeMenu()
     },
     closeOthersTags() {
-      this.$router.push(this.selectedTag)
+      this.$router.push(this.selectedTag).catch(() => {})
       this.$store.dispatch('tagsView/delOthersViews', this.selectedTag).catch(() => {
         // fallback: 手动关闭其他
         const views = this.$store.state.tagsView.visitedViews.filter(
@@ -144,7 +145,7 @@ export default {
       this.closeMenu()
     },
     closeAllTags() {
-      this.$store.dispatch('tagsView/delAllViews').then(visitedViews => {
+      this.$store.dispatch('tagsView/delAllViews').then(({ visitedViews }) => {
         const affixTags = this.visitedViews.filter(v => v.meta?.affix)
         if (affixTags.some(tag => tag.path === this.$route.path)) {
           return

@@ -17,6 +17,9 @@ const mutations = {
     if (!view.name) return
     state.cachedViews.push(view.name)
   },
+  SORT_VISITED_VIEWS(state) {
+    state.visitedViews.sort((a, b) => (b.meta?.affix ? 1 : 0) - (a.meta?.affix ? 1 : 0))
+  },
   DEL_VISITED_VIEW(state, view) {
     const index = state.visitedViews.findIndex(v => v.path === view.path)
     if (index > -1) {
@@ -58,6 +61,12 @@ const actions = {
   },
   addCachedView({ commit }, view) {
     commit('ADD_CACHED_VIEW', view)
+  },
+  delCachedView({ commit, state }, view) {
+    return new Promise(resolve => {
+      commit('DEL_CACHED_VIEW', view)
+      resolve([...state.cachedViews])
+    })
   },
   delView({ commit, state }, view) {
     return new Promise(resolve => {

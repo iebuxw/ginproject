@@ -69,6 +69,11 @@ func Setup(
 			middleware.RequirePerm("user:list"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), userCtrl.List)
 		authorized.GET("/users/export",
 			middleware.RequirePerm("user:list"), middleware.RBAC(menuDAO), userCtrl.Export)
+		// 用户导入（不挂 OperationLogger：中间件会把 multipart body 整体读入内存并把二进制写入日志）
+		authorized.POST("/users/import",
+			middleware.RequirePerm("user:add"), middleware.RBAC(menuDAO), userCtrl.Import)
+		authorized.GET("/users/import-template",
+			middleware.RequirePerm("user:add"), middleware.RBAC(menuDAO), userCtrl.ImportTemplate)
 		authorized.GET("/users/:id",
 			middleware.RequirePerm("user:query"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), userCtrl.Get)
 		authorized.POST("/users",

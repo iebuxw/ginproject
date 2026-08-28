@@ -12,6 +12,49 @@ definitions:
     - password
     - username
     type: object
+  controller.serverInfoResponse:
+    properties:
+      cpu:
+        properties:
+          cores:
+            type: integer
+          usage_percent:
+            type: number
+        type: object
+      disk:
+        properties:
+          total:
+            type: integer
+          usage_percent:
+            type: number
+          used:
+            type: integer
+        type: object
+      memory:
+        properties:
+          total:
+            type: integer
+          usage_percent:
+            type: number
+          used:
+            type: integer
+        type: object
+      runtime:
+        properties:
+          arch:
+            type: string
+          go_version:
+            type: string
+          goroutines:
+            type: integer
+          mem_alloc:
+            type: integer
+          os:
+            type: string
+          uptime:
+            type: integer
+        type: object
+    type: object
   model.CronTask:
     properties:
       body:
@@ -170,6 +213,8 @@ definitions:
     type: object
   model.User:
     properties:
+      avatar:
+        type: string
       created_at:
         type: string
       description:
@@ -200,6 +245,30 @@ definitions:
       name:
         type: string
     type: object
+  service.ImportFailure:
+    properties:
+      reason:
+        type: string
+      row:
+        type: integer
+    type: object
+  service.ImportResult:
+    properties:
+      failed:
+        items:
+          $ref: '#/definitions/service.ImportFailure'
+        type: array
+      skipped:
+        type: integer
+      skipped_usernames:
+        items:
+          type: string
+        type: array
+      success:
+        type: integer
+      total:
+        type: integer
+    type: object
   utils.Response:
     properties:
       code:
@@ -215,6 +284,24 @@ info:
   title: GinAdmin API
   version: "1.0"
 paths:
+  /api/dashboard/server-info:
+    get:
+      description: 返回 CPU、内存、磁盘使用率及 Go 运行时信息
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/controller.serverInfoResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 获取服务器信息
+      tags:
+      - dashboard
   /auth/change-password:
     post:
       consumes:
@@ -1623,6 +1710,64 @@ paths:
       security:
       - BearerAuth: []
       summary: 编辑用户
+      tags:
+      - 用户管理
+  /users/export:
+    get:
+      description: 同步导出用户数据为 Excel 文件
+      parameters:
+      - description: 搜索关键词（用户名/邮箱）
+        in: query
+        name: keyword
+        type: string
+      produces:
+      - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+      responses:
+        "200":
+          description: Excel 文件
+          schema:
+            type: file
+      security:
+      - BearerAuth: []
+      summary: 导出用户列表
+      tags:
+      - 用户管理
+  /users/import:
+    post:
+      consumes:
+      - multipart/form-data
+      description: 上传 xlsx 文件批量创建用户；用户名已存在的行跳过，校验失败的行返回原因
+      parameters:
+      - description: xlsx 文件
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 业务错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Excel 批量导入用户
+      tags:
+      - 用户管理
+  /users/import-template:
+    get:
+      description: 生成仅含表头的 xlsx 模板（用户名/密码/邮箱/手机号/描述/状态/角色）
+      produces:
+      - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+      responses:
+        "200":
+          description: Excel 模板
+          schema:
+            type: file
+      security:
+      - BearerAuth: []
+      summary: 下载用户导入模板
       tags:
       - 用户管理
 securityDefinitions:

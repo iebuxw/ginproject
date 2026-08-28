@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"ginproject/internal/model"
@@ -229,5 +230,134 @@ func (ctl *UserController) Export(c *gin.Context) {
 
 	if _, err := f.WriteTo(c.Writer); err != nil {
 		utils.ErrorWithStatus(c, http.StatusInternalServerError, 500, "导出失败")
+	}
+}
+
+// Import 导入用户
+// @Summary Excel 批量导入用户
+// @Description 上传 xlsx 文件批量创建用户；用户名已存在的行跳过，校验失败的行返回原因
+// @Tags 用户管理
+// @Security BearerAuth
+// @Accept multipart/form-data
+// @Produce json
+// @Param file formData file true "xlsx 文件"
+// @Success 200 {object} utils.Response{data=service.ImportResult} "导入结果汇总"
+// @Failure 200 {object} utils.Response "业务错误"
+// @Router /users/import [post]
+func (ctl *UserController) Import(c *gin.Context) {
+	file, _, err := c.Request.FormFile("file")
+	if err != nil {
+		utils.Error(c, 400, "请选择文件")
+		return
+	}
+	defer file.Close()
+
+	f, err := excelize.OpenReader(file)
+	if err != nil {
+		utils.Error(c, 400, "文件格式错误，仅支持 xlsx")
+		return
+	}
+	defer f.Close()
+
+	sheets := f.GetSheetList()
+	if len(sheets) == 0 {
+		utils.Error(c, 400, "Excel 无工作表")
+		return
+	}
+	rows, err := f.GetRows(sheets[0])
+	if err != nil {
+		utils.Error(c, 400, "读取 Excel 失败")
+		return
+	}
+	if len(rows) < 2 {
+		utils.Error(c, 400, "Excel 无数据行")
+		return
+	}
+
+	colIdx := make(map[string]int)
+	for i, h := range rows[0] {
+		colIdx[strings.TrimSpace(h)] = i
+	}
+	for _, required := range []string{"用户名", "密码"} {
+		if _, ok := colIdx[required]; !ok {
+			utils.Error(c, 400, "缺少必需列: "+required)
+			return
+		}
+	}
+
+	cell := func(row []string, header string) string {
+		i, ok := colIdx[header]
+		if !ok || i >= len(row) {
+			return ""
+		}
+		return strings.TrimSpace(row[i])
+	}
+
+	importRows := make([]service.ImportRow, 0, len(rows)-1)
+	for i, row := range rows[1:] {
+		empty := true
+		for _, v := range row {
+			if strings.TrimSpace(v) != "" {
+				empty = false
+				break
+			}
+		}
+		if empty {
+			continue
+		}
+		status := 1
+		if cell(row, "状态") == "禁用" {
+			status = 0
+		}
+		importRows = append(importRows, service.ImportRow{
+			Username:    cell(row, "用户名"),
+			Password:    cell(row, "密码"),
+			Email:       cell(row, "邮箱"),
+			Phone:       cell(row, "手机号"),
+			Description: cell(row, "描述"),
+			Status:      status,
+			RoleNames:   cell(row, "角色"),
+			Row:         i + 2,
+		})
+	}
+
+	result, err := ctl.userService.Import(importRows)
+	if err != nil {
+		utils.Error(c, 500, "获取角色列表失败")
+		return
+	}
+	utils.Success(c, result)
+}
+
+// ImportTemplate 下载用户导入模板
+// @Summary 下载用户导入模板
+// @Description 生成仅含表头的 xlsx 模板（用户名/密码/邮箱/手机号/描述/状态/角色）
+// @Tags 用户管理
+// @Security BearerAuth
+// @Produce application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+// @Success 200 {file} binary "Excel 模板"
+// @Router /users/import-template [get]
+func (ctl *UserController) ImportTemplate(c *gin.Context) {
+	f := excelize.NewFile()
+	defer f.Close()
+
+	sheet := "用户导入模板"
+	f.SetSheetName("Sheet1", sheet)
+
+	sw, _ := f.NewStreamWriter(sheet)
+	sw.SetRow("A1", []interface{}{"用户名", "密码", "邮箱", "手机号", "描述", "状态", "角色"})
+	sw.Flush()
+
+	headerStyle, _ := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Bold: true},
+		Fill: excelize.Fill{Type: "pattern", Color: []string{"#E0E0E0"}, Pattern: 1},
+	})
+	f.SetCellStyle(sheet, "A1", "G1", headerStyle)
+
+	c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.Header("Content-Disposition", "attachment; filename*=UTF-8''"+url.PathEscape("用户导入模板.xlsx"))
+
+	if _, err := f.WriteTo(c.Writer); err != nil {
+		utils.ErrorWithStatus(c, http.StatusInternalServerError, 500, "模板生成失败")
 	}
 }

@@ -15,6 +15,40 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/dashboard/server-info": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "返回 CPU、内存、磁盘使用率及 Go 运行时信息",
+                "tags": [
+                    "dashboard"
+                ],
+                "summary": "获取服务器信息",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/controller.serverInfoResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/auth/change-password": {
             "post": {
                 "security": [
@@ -2152,6 +2186,101 @@ const docTemplate = `{
                 }
             }
         },
+        "/users/export": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "同步导出用户数据为 Excel 文件",
+                "produces": [
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                ],
+                "tags": [
+                    "用户管理"
+                ],
+                "summary": "导出用户列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "搜索关键词（用户名/邮箱）",
+                        "name": "keyword",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Excel 文件",
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/import": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "上传 xlsx 文件批量创建用户；用户名已存在的行跳过，校验失败的行返回原因",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "用户管理"
+                ],
+                "summary": "Excel 批量导入用户",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "xlsx 文件",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "业务错误",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/import-template": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "生成仅含表头的 xlsx 模板（用户名/密码/邮箱/手机号/描述/状态/角色）",
+                "produces": [
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                ],
+                "tags": [
+                    "用户管理"
+                ],
+                "summary": "下载用户导入模板",
+                "responses": {
+                    "200": {
+                        "description": "Excel 模板",
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                }
+            }
+        },
         "/users/{id}": {
             "get": {
                 "security": [
@@ -2330,6 +2459,73 @@ const docTemplate = `{
                 "username": {
                     "type": "string",
                     "example": "admin"
+                }
+            }
+        },
+        "controller.serverInfoResponse": {
+            "type": "object",
+            "properties": {
+                "cpu": {
+                    "type": "object",
+                    "properties": {
+                        "cores": {
+                            "type": "integer"
+                        },
+                        "usage_percent": {
+                            "type": "number"
+                        }
+                    }
+                },
+                "disk": {
+                    "type": "object",
+                    "properties": {
+                        "total": {
+                            "type": "integer"
+                        },
+                        "usage_percent": {
+                            "type": "number"
+                        },
+                        "used": {
+                            "type": "integer"
+                        }
+                    }
+                },
+                "memory": {
+                    "type": "object",
+                    "properties": {
+                        "total": {
+                            "type": "integer"
+                        },
+                        "usage_percent": {
+                            "type": "number"
+                        },
+                        "used": {
+                            "type": "integer"
+                        }
+                    }
+                },
+                "runtime": {
+                    "type": "object",
+                    "properties": {
+                        "arch": {
+                            "type": "string"
+                        },
+                        "go_version": {
+                            "type": "string"
+                        },
+                        "goroutines": {
+                            "type": "integer"
+                        },
+                        "mem_alloc": {
+                            "type": "integer"
+                        },
+                        "os": {
+                            "type": "string"
+                        },
+                        "uptime": {
+                            "type": "integer"
+                        }
+                    }
                 }
             }
         },
@@ -2573,6 +2769,9 @@ const docTemplate = `{
         "model.User": {
             "type": "object",
             "properties": {
+                "avatar": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -2616,6 +2815,43 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "service.ImportFailure": {
+            "type": "object",
+            "properties": {
+                "reason": {
+                    "type": "string"
+                },
+                "row": {
+                    "type": "integer"
+                }
+            }
+        },
+        "service.ImportResult": {
+            "type": "object",
+            "properties": {
+                "failed": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/service.ImportFailure"
+                    }
+                },
+                "skipped": {
+                    "type": "integer"
+                },
+                "skipped_usernames": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "success": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
                 }
             }
         },

@@ -79,6 +79,7 @@ func main() {
 	cronTaskExecutionDAO := dao.NewCronTaskExecutionDAO(db)
 	dbBackupDAO := dao.NewDbBackupDAO(db)
 	fileDAO := dao.NewFileDAO(db)
+	systemSettingDAO := dao.NewSystemSettingDAO(db)
 
 	// Service
 	authService := service.NewAuthService(userDAO, rdb, cfg)
@@ -92,6 +93,7 @@ func main() {
 	dictDataService := service.NewDictDataService(dictDataDAO)
 	dbBackupService := service.NewDbBackupService(dbBackupDAO, cfg)
 	fileService := service.NewFileService(fileDAO)
+	systemSettingService := service.NewSystemSettingService(systemSettingDAO)
 
 	// RabbitMQ
 	amqpConn, err := amqp091.Dial(cfg.RabbitMQ.DSN())
@@ -189,9 +191,10 @@ func main() {
 	dashboardCtrl := controller.NewDashboardController()
 	uploadCtrl := controller.NewUploadController(userDAO)
 	fileCtrl := controller.NewFileController(fileService)
+	settingCtrl := controller.NewSystemSettingController(systemSettingService)
 
 	// Router
-	r := router.Setup(cfg, authCtrl, userCtrl, roleCtrl, menuCtrl, logCtrl, loginLogCtrl, wsCtrl, uploadCtrl, authService, userDAO, menuDAO, logDAO, logRepo, dictTypeCtrl, dictDataCtrl, cronTaskCtrl, dbBackupCtrl, fileCtrl, dashboardCtrl)
+	r := router.Setup(cfg, authCtrl, userCtrl, roleCtrl, menuCtrl, logCtrl, loginLogCtrl, wsCtrl, uploadCtrl, authService, userDAO, menuDAO, logDAO, logRepo, dictTypeCtrl, dictDataCtrl, cronTaskCtrl, dbBackupCtrl, fileCtrl, dashboardCtrl, settingCtrl)
 
 	log.Printf("Server running on :%s", cfg.Server.Port)
 	if err := r.Run(":" + cfg.Server.Port); err != nil {

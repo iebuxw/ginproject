@@ -36,6 +36,7 @@ func Setup(
 	dbBackupCtrl *controller.DbBackupController,
 	fileCtrl *controller.FileController,
 	dashboardCtrl *controller.DashboardController,
+	settingCtrl *controller.SystemSettingController,
 ) *gin.Engine {
 	r := gin.Default()
 	r.Use(middleware.CORS())
@@ -47,6 +48,7 @@ func Setup(
 
 	// 公开路由
 	api.POST("/auth/login", authCtrl.Login)
+	api.GET("/settings", settingCtrl.Get)
 
 	// 日志清理（公开：定时任务调度器无 JWT，靠 secret 参数防滥用）
 	api.POST("/logs/cleanup", logCtrl.Cleanup)
@@ -181,6 +183,13 @@ func Setup(
 			middleware.RequirePerm("file:download"), middleware.RBAC(menuDAO), fileCtrl.Download)
 		authorized.DELETE("/files/:id",
 			middleware.RequirePerm("file:delete"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), fileCtrl.Delete)
+
+		// 系统配置（读取已移到公开路由；写入需认证+权限）
+		authorized.PUT("/settings",
+			middleware.RequirePerm("setting:save"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), settingCtrl.Update)
+
+		// Logo 上传
+		authorized.POST("/upload/logo", uploadCtrl.UploadLogo)
 
 		// 仪表盘
 		authorized.GET("/dashboard/server-info", dashboardCtrl.GetServerInfo)

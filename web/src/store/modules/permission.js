@@ -10,7 +10,8 @@ const componentMap = {
   '/system/task': () => import('@/views/task/index.vue'),
   '/system/task-logs': () => import('@/views/task/logs.vue'),
   '/system/backup': () => import('@/views/backup/index.vue'),
-  '/system/file': () => import('@/views/file/index.vue')
+  '/system/file': () => import('@/views/file/index.vue'),
+  '/system/setting': () => import('@/views/setting/index.vue')
 }
 
 const state = {

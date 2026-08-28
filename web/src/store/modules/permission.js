@@ -9,7 +9,8 @@ const componentMap = {
   '/system/dict-type': () => import('@/views/dict/index.vue'),
   '/system/task': () => import('@/views/task/index.vue'),
   '/system/task-logs': () => import('@/views/task/logs.vue'),
-  '/system/backup': () => import('@/views/backup/index.vue')
+  '/system/backup': () => import('@/views/backup/index.vue'),
+  '/system/file': () => import('@/views/file/index.vue')
 }
 
 const state = {

@@ -145,8 +145,12 @@ func (s *UserService) Import(rows []ImportRow) (*ImportResult, error) {
 
 		hashed, err := utils.HashPassword(row.Password)
 		if err != nil {
-			result.Failed = append(result.Failed, ImportFailure{Row: row.Row, Reason: "密码哈希失败: " + err.Error()})
+			result.Failed = append(result.Failed, ImportFailure{Row: row.Row, Reason: "密码哈希失败"})
 			continue
+		}
+		status := 0
+		if row.Status == 1 {
+			status = 1
 		}
 		user := &model.User{
 			Username:    row.Username,
@@ -154,11 +158,11 @@ func (s *UserService) Import(rows []ImportRow) (*ImportResult, error) {
 			Email:       row.Email,
 			Phone:       row.Phone,
 			Description: row.Description,
-			Status:      row.Status,
+			Status:      status,
 			Roles:       buildRoles(ids),
 		}
 		if err := s.userDAO.Create(user); err != nil {
-			result.Failed = append(result.Failed, ImportFailure{Row: row.Row, Reason: "创建失败: " + err.Error()})
+			result.Failed = append(result.Failed, ImportFailure{Row: row.Row, Reason: "创建失败"})
 			continue
 		}
 		result.Success++

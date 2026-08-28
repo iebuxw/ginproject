@@ -132,6 +132,10 @@ export default {
         responseType: 'blob',
         headers: { Authorization: 'Bearer ' + token }
       }).then(res => {
+        if ((res.headers['content-type'] || '').includes('application/json')) {
+          this.$message.error('下载失败：文件不存在或已被删除')
+          return
+        }
         const url = window.URL.createObjectURL(new Blob([res.data]))
         const link = document.createElement('a')
         link.href = url

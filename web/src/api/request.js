@@ -11,6 +11,8 @@ request.interceptors.request.use(config => {
   return config
 })
 
+let isLoggingOut = false
+
 request.interceptors.response.use(
   response => {
     const res = response.data
@@ -21,9 +23,12 @@ request.interceptors.response.use(
     return res
   },
   error => {
-    if (error.response && error.response.status === 401) {
-      store.dispatch('user/logout')
+    if (error.response && error.response.status === 401 && !isLoggingOut) {
+      isLoggingOut = true
+      store.commit('user/CLEAR')
       router.push('/login')
+      // 延迟重置标志，避免短时间内重复触发
+      setTimeout(() => { isLoggingOut = false }, 1000)
     }
     return Promise.reject(error)
   }

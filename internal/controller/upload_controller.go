@@ -23,6 +23,44 @@ func NewUploadController(userDAO *dao.UserDAO) *UploadController {
 	return &UploadController{uploadDir: "./uploads/avatars", userDAO: userDAO}
 }
 
+// UploadLogo 上传系统 Logo
+func (ctl *UploadController) UploadLogo(c *gin.Context) {
+	file, header, err := c.Request.FormFile("file")
+	if err != nil {
+		utils.Error(c, 400, "请选择文件")
+		return
+	}
+	defer file.Close()
+
+	if err := validateAvatar(header); err != nil {
+		utils.Error(c, 400, err.Error())
+		return
+	}
+
+	logoDir := "./uploads/logos"
+	if err := os.MkdirAll(logoDir, 0755); err != nil {
+		utils.Error(c, 500, "创建目录失败")
+		return
+	}
+
+	filename := randomHex(16) + strings.ToLower(filepath.Ext(header.Filename))
+	savePath := filepath.Join(logoDir, filename)
+
+	dst, err := os.Create(savePath)
+	if err != nil {
+		utils.Error(c, 500, "保存文件失败")
+		return
+	}
+	defer dst.Close()
+
+	if _, err := io.Copy(dst, file); err != nil {
+		utils.Error(c, 500, "保存文件失败")
+		return
+	}
+
+	utils.Success(c, gin.H{"url": "/api/uploads/logos/" + filename})
+}
+
 // UploadAvatar 上传头像
 func (ctl *UploadController) UploadAvatar(c *gin.Context) {
 	file, header, err := c.Request.FormFile("file")

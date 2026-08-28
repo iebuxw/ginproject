@@ -1,7 +1,10 @@
 <template>
   <el-container style="height:100vh">
     <el-aside width="220px" style="background:#304156;overflow-y:auto">
-      <div style="color:#fff;text-align:center;line-height:60px;font-size:20px;font-weight:bold">GinAdmin</div>
+      <div style="color:#fff;text-align:center;line-height:60px;font-size:20px;font-weight:bold;display:flex;align-items:center;justify-content:center">
+        <img v-if="siteLogo" :src="siteLogo" style="height:28px;margin-right:8px;border-radius:4px" />
+        {{ siteName }}
+      </div>
       <el-menu
         :default-active="$route.path"
         background-color="#304156"
@@ -57,6 +60,7 @@
 <script>
 import { mapState } from 'vuex'
 import { connectWS, disconnectWS } from '@/utils/ws'
+import { getSettings } from '@/api/setting'
 import TagsView from './components/TagsView.vue'
 export default {
   components: { TagsView },
@@ -68,6 +72,7 @@ export default {
   computed: {
     ...mapState('user', ['userInfo']),
     ...mapState('tagsView', ['cachedViews']),
+    ...mapState('settings', { siteName: 'siteName', siteLogo: 'siteLogo' }),
     key() {
       return this.$route.path
     }
@@ -76,6 +81,7 @@ export default {
     this.menus = this.$store.state.permission.menus
     const token = this.$store.state.user.token
     if (token) connectWS(token)
+    this.fetchSettings()
   },
   beforeDestroy() {
     disconnectWS()
@@ -83,6 +89,19 @@ export default {
   methods: {
     hasVisibleChildren(item) {
       return item.children && item.children.some(c => c.type === 2)
+    },
+    async fetchSettings() {
+      try {
+        const res = await getSettings()
+        if (res.code === 200 && res.data) {
+          const siteName = res.data.site_name || 'GinAdmin'
+          const siteLogo = res.data.site_logo || ''
+          this.$store.commit('settings/SET_SETTINGS', { siteName, siteLogo })
+          document.title = siteName
+        }
+      } catch (e) {
+        // 配置加载失败使用默认值
+      }
     },
     async handleCommand(cmd) {
       if (cmd === 'profile') {

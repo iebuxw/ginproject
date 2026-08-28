@@ -1,7 +1,7 @@
 <template>
   <div class="login-container" style="display:flex;justify-content:center;align-items:center;height:100vh;background:#f0f2f5">
     <el-card style="width:400px">
-      <h2 style="text-align:center;margin-bottom:20px">GinAdmin 登录</h2>
+      <h2 style="text-align:center;margin-bottom:20px">{{ siteName }}</h2>
       <el-form ref="form" :model="form" :rules="rules">
         <el-form-item prop="username">
           <el-input v-model="form.username" placeholder="用户名" prefix-icon="el-icon-user"></el-input>
@@ -17,6 +17,7 @@
   </div>
 </template>
 <script>
+import { getSettings } from '@/api/setting'
 export default {
   data() {
     return {
@@ -25,8 +26,17 @@ export default {
         username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
         password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
       },
-      loading: false
+      loading: false,
+      siteName: 'GinAdmin'
     }
+  },
+  created() {
+    getSettings().then(res => {
+      if (res.code === 200 && res.data.site_name) {
+        this.siteName = res.data.site_name
+        document.title = res.data.site_name
+      }
+    }).catch(() => {})
   },
   methods: {
     async handleLogin() {

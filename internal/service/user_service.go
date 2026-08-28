@@ -44,6 +44,10 @@ func (s *UserService) Delete(id uint) error { return s.userDAO.Delete(id) }
 
 func (s *UserService) FindByID(id uint) (*model.User, error) { return s.userDAO.FindByID(id) }
 
+func (s *UserService) FindBatch(keyword string, offset, limit int) ([]model.User, error) {
+	return s.userDAO.FindBatch(keyword, offset, limit)
+}
+
 func (s *UserService) FindPage(page, pageSize int, keyword string) ([]model.User, int64, error) {
 	return s.userDAO.FindPage(page, pageSize, keyword)
 }

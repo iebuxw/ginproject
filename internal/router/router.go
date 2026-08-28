@@ -34,6 +34,7 @@ func Setup(
 	dictDataCtrl *controller.DictDataController,
 	taskCtrl *controller.CronTaskController,
 	dbBackupCtrl *controller.DbBackupController,
+	fileCtrl *controller.FileController,
 	dashboardCtrl *controller.DashboardController,
 ) *gin.Engine {
 	r := gin.Default()
@@ -170,6 +171,16 @@ func Setup(
 			middleware.RequirePerm("db_backup:delete"), middleware.RBAC(menuDAO), dbBackupCtrl.Delete)
 		authorized.GET("/db-backups/:id/download",
 			middleware.RequirePerm("db_backup:download"), middleware.RBAC(menuDAO), dbBackupCtrl.Download)
+
+		// 文件管理（上传不挂 OperationLogger：中间件会把 multipart body 整体读入内存并把二进制写入日志）
+		authorized.GET("/files",
+			middleware.RequirePerm("file:list"), middleware.RBAC(menuDAO), fileCtrl.List)
+		authorized.POST("/files/upload",
+			middleware.RequirePerm("file:upload"), middleware.RBAC(menuDAO), fileCtrl.Upload)
+		authorized.GET("/files/:id/download",
+			middleware.RequirePerm("file:download"), middleware.RBAC(menuDAO), fileCtrl.Download)
+		authorized.DELETE("/files/:id",
+			middleware.RequirePerm("file:delete"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), fileCtrl.Delete)
 
 		// 仪表盘
 		authorized.GET("/dashboard/server-info", dashboardCtrl.GetServerInfo)

@@ -30,7 +30,11 @@ const actions = {
     await changePassword(data)
   },
   async logout({ commit }) {
-    await logout()
+    try {
+      await logout()
+    } catch (e) {
+      // token 已过期或网络异常，忽略错误，仍清除本地状态
+    }
     commit('CLEAR')
   }
 }

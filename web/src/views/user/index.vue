@@ -3,7 +3,10 @@
     <el-card>
       <div slot="header" class="clearfix">
         <span>用户管理</span>
-        <el-button type="primary" size="small" style="float:right" @click="openDialog()">新增用户</el-button>
+        <div style="float:right">
+          <el-button size="small" :loading="exporting" @click="exportExcel">{{ exporting ? '导出中...' : '导出Excel' }}</el-button>
+          <el-button type="primary" size="small" @click="openDialog()">新增用户</el-button>
+        </div>
       </div>
       <el-input v-model="keyword" placeholder="搜索用户名/邮箱" style="width:250px;margin-bottom:10px" @keyup.enter.native="fetchData" clearable @clear="fetchData"></el-input>
       <el-table :data="list" border>
@@ -68,13 +71,13 @@
   </div>
 </template>
 <script>
-import { getUsers, addUser, updateUser, deleteUser } from '@/api/user'
+import { getUsers, addUser, updateUser, deleteUser, exportUsers } from '@/api/user'
 import store from '@/store'
 import { getRoles } from '@/api/role'
 export default {
   data() {
     return {
-      list: [], page: 1, pageSize: 10, total: 0, keyword: '',
+      list: [], page: 1, pageSize: 10, total: 0, keyword: '', exporting: false,
       dialogVisible: false, isEdit: false,
       form: { username: '', password: '', email: '', phone: '', description: '', avatar: '', status: 1, role_ids: [] },
       allRoles: []
@@ -124,6 +127,33 @@ export default {
     async handleDelete(id) {
       await this.$confirm('确认删除该用户?', '提示', { type: 'warning' })
       await deleteUser(id); this.fetchData(); this.$message.success('删除成功')
+    },
+    async exportExcel() {
+      this.exporting = true
+      try {
+        const res = await exportUsers({ keyword: this.keyword })
+        const url = window.URL.createObjectURL(new Blob([res.data]))
+        const link = document.createElement('a')
+        link.href = url
+        const disposition = res.headers['content-disposition'] || ''
+        let filename = '用户列表.xlsx'
+        const rfc5987 = disposition.match(/filename\*=UTF-8''(.+)/i)
+        if (rfc5987) {
+          filename = decodeURIComponent(rfc5987[1])
+        } else {
+          const fallback = disposition.match(/filename="?([^";]+)"?/)
+          if (fallback) filename = fallback[1]
+        }
+        link.download = filename
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        window.URL.revokeObjectURL(url)
+      } catch {
+        this.$message.error('导出失败')
+      } finally {
+        this.exporting = false
+      }
     }
   }
 }

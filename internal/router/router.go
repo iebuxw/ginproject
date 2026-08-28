@@ -67,6 +67,8 @@ func Setup(
 		// 用户管理
 		authorized.GET("/users",
 			middleware.RequirePerm("user:list"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), userCtrl.List)
+		authorized.GET("/users/export",
+			middleware.RequirePerm("user:list"), middleware.RBAC(menuDAO), userCtrl.Export)
 		authorized.GET("/users/:id",
 			middleware.RequirePerm("user:query"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), userCtrl.Get)
 		authorized.POST("/users",

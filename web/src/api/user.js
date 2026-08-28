@@ -8,3 +8,4 @@ export const deleteUser = (id) => request.delete('/users/' + id)
 export const uploadAvatar = (formData) => request.post('/upload/avatar', formData, {
   headers: { 'Content-Type': 'multipart/form-data' }
 })
+export const exportUsers = (params) => request.get('/users/export', { params, responseType: 'blob' })

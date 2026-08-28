@@ -18,7 +18,7 @@
 
 - multipart/form-data，文件字段名 `file`
 - 权限：复用 `user:add`，不新增权限点/菜单/迁移
-- 挂 `OperationLogger`（multipart 无 JSON body，回退记录路径，无敏感信息）
+- 不挂 `OperationLogger`（与 `/files/upload` 一致：中间件会把 multipart body 整体读入内存并把二进制写入日志）
 
 ### GET /api/users/import-template
 
@@ -41,7 +41,7 @@
 
 ## Service 层
 
-`UserService` 新增导入方法，逐行处理：
+`UserService` 新增 `roleDAO` 依赖（`NewUserService` 签名随之调整，main.go 同步），用于角色名->ID 映射。新增导入方法，逐行处理：
 
 - 每行独立校验 -> 有效则哈希密码 + 逐条 `userDAO.Create`（不用批量事务，单行失败不影响其他行）
 - 已存在用户名经 `FindByUsername` 判定 -> 计入跳过

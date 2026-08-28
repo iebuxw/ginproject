@@ -4,6 +4,7 @@
       <div slot="header" class="clearfix">
         <span>用户管理</span>
         <div style="float:right">
+          <el-button size="small" @click="importDialogVisible = true">导入用户</el-button>
           <el-button size="small" :loading="exporting" @click="exportExcel">{{ exporting ? '导出中...' : '导出Excel' }}</el-button>
           <el-button type="primary" size="small" @click="openDialog()">新增用户</el-button>
         </div>
@@ -68,10 +69,37 @@
       </el-form>
       <span slot="footer"><el-button @click="dialogVisible = false">取消</el-button><el-button type="primary" @click="handleSubmit">确定</el-button></span>
     </el-dialog>
+
+    <el-dialog title="导入用户" :visible.sync="importDialogVisible" width="520px">
+      <el-alert type="info" :closable="false" show-icon title="请先下载模板，按模板格式填写后上传导入"
+        style="margin-bottom:15px"></el-alert>
+      <el-upload drag action="" :auto-upload="false" :limit="1"
+        :on-change="handleImportChange" :on-remove="handleImportRemove" :file-list="importFileList">
+        <i class="el-icon-upload"></i>
+        <div class="el-upload__text">将文件拖到此处，或<em>点击选择</em></div>
+        <div class="el-upload__tip" slot="tip">仅支持 .xlsx 文件，<el-link type="primary" :underline="false" style="font-size:12px" @click="downloadTemplate">下载模板</el-link></div>
+      </el-upload>
+      <div v-if="importResult" style="margin-top:15px">
+        <el-alert :type="importResult.failed.length ? 'warning' : 'success'" :closable="false" show-icon
+          :title="'共 ' + importResult.total + ' 条：成功 ' + importResult.success + '，跳过 ' + importResult.skipped + '，失败 ' + importResult.failed.length"></el-alert>
+        <div v-if="importResult.skipped_usernames.length" style="margin-top:10px;font-size:13px">
+          跳过的用户名：{{ importResult.skipped_usernames.join('、') }}
+        </div>
+        <div v-if="importResult.failed.length" style="margin-top:10px">
+          <div v-for="fitem in importResult.failed" :key="fitem.row" style="font-size:13px;color:#F56C6C">
+            第 {{ fitem.row }} 行：{{ fitem.reason }}
+          </div>
+        </div>
+      </div>
+      <span slot="footer">
+        <el-button @click="importDialogVisible = false">关闭</el-button>
+        <el-button type="primary" :loading="importing" :disabled="!importFile" @click="handleImport">开始导入</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 <script>
-import { getUsers, addUser, updateUser, deleteUser, exportUsers } from '@/api/user'
+import { getUsers, addUser, updateUser, deleteUser, exportUsers, importUsers, downloadImportTemplate } from '@/api/user'
 import store from '@/store'
 import { getRoles } from '@/api/role'
 export default {
@@ -80,7 +108,8 @@ export default {
       list: [], page: 1, pageSize: 10, total: 0, keyword: '', exporting: false,
       dialogVisible: false, isEdit: false,
       form: { username: '', password: '', email: '', phone: '', description: '', avatar: '', status: 1, role_ids: [] },
-      allRoles: []
+      allRoles: [],
+      importDialogVisible: false, importing: false, importFile: null, importFileList: [], importResult: null
     }
   },
   created() { this.fetchData(); this.fetchRoles() },
@@ -128,27 +157,55 @@ export default {
       await this.$confirm('确认删除该用户?', '提示', { type: 'warning' })
       await deleteUser(id); this.fetchData(); this.$message.success('删除成功')
     },
+    saveBlob(res, fallbackName) {
+      const url = window.URL.createObjectURL(new Blob([res.data]))
+      const link = document.createElement('a')
+      link.href = url
+      const disposition = res.headers['content-disposition'] || ''
+      let filename = fallbackName
+      const rfc5987 = disposition.match(/filename\*=UTF-8''(.+)/i)
+      if (rfc5987) {
+        filename = decodeURIComponent(rfc5987[1])
+      } else {
+        const fallback = disposition.match(/filename="?([^";]+)"?/)
+        if (fallback) filename = fallback[1]
+      }
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    },
+    async downloadTemplate() {
+      const res = await downloadImportTemplate()
+      this.saveBlob(res, '用户导入模板.xlsx')
+    },
+    handleImportChange(file, fileList) {
+      this.importFile = file.raw
+      this.importFileList = fileList.slice(-1)
+    },
+    handleImportRemove() {
+      this.importFile = null
+      this.importFileList = []
+    },
+    async handleImport() {
+      this.importing = true
+      this.importResult = null
+      try {
+        const fd = new FormData()
+        fd.append('file', this.importFile)
+        const res = await importUsers(fd)
+        this.importResult = res.data
+        this.fetchData()
+      } finally {
+        this.importing = false
+      }
+    },
     async exportExcel() {
       this.exporting = true
       try {
         const res = await exportUsers({ keyword: this.keyword })
-        const url = window.URL.createObjectURL(new Blob([res.data]))
-        const link = document.createElement('a')
-        link.href = url
-        const disposition = res.headers['content-disposition'] || ''
-        let filename = '用户列表.xlsx'
-        const rfc5987 = disposition.match(/filename\*=UTF-8''(.+)/i)
-        if (rfc5987) {
-          filename = decodeURIComponent(rfc5987[1])
-        } else {
-          const fallback = disposition.match(/filename="?([^";]+)"?/)
-          if (fallback) filename = fallback[1]
-        }
-        link.download = filename
-        document.body.appendChild(link)
-        link.click()
-        link.remove()
-        window.URL.revokeObjectURL(url)
+        this.saveBlob(res, '用户列表.xlsx')
       } catch {
         this.$message.error('导出失败')
       } finally {

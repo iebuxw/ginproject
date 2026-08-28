@@ -9,3 +9,7 @@ export const uploadAvatar = (formData) => request.post('/upload/avatar', formDat
   headers: { 'Content-Type': 'multipart/form-data' }
 })
 export const exportUsers = (params) => request.get('/users/export', { params, responseType: 'blob' })
+export const importUsers = (formData) => request.post('/users/import', formData, {
+  headers: { 'Content-Type': 'multipart/form-data' }
+})
+export const downloadImportTemplate = () => request.get('/users/import-template', { responseType: 'blob' })

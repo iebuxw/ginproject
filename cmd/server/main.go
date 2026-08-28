@@ -83,7 +83,7 @@ func main() {
 
 	// Service
 	authService := service.NewAuthService(userDAO, rdb, cfg)
-	userService := service.NewUserService(userDAO)
+	userService := service.NewUserService(userDAO, roleDAO)
 	roleService := service.NewRoleService(roleDAO)
 	menuService := service.NewMenuService(menuDAO)
 	logService := service.NewLogService(logDAO, logRepo)

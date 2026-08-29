@@ -61,6 +61,7 @@ func Setup(
 		authorized.POST("/auth/logout", authCtrl.Logout)
 		authorized.POST("/auth/change-password", middleware.OperationLogger(logDAO, logRepo), authCtrl.ChangePassword)
 		authorized.GET("/auth/userinfo", authCtrl.UserInfo)
+		authorized.PUT("/auth/profile", middleware.OperationLogger(logDAO, logRepo), authCtrl.Profile)
 
 		// 文件上传
 		authorized.POST("/upload/avatar", uploadCtrl.UploadAvatar)

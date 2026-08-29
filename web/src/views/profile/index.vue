@@ -2,9 +2,12 @@
   <div>
     <el-card style="margin-bottom:20px">
       <div slot="header"><span>基本信息</span></div>
-      <el-form label-width="80px" style="max-width:500px">
+      <el-form ref="profileFormRef" :model="profileForm" :rules="profileRules" label-width="80px" style="max-width:500px">
         <el-form-item label="用户名">
           <span>{{ userInfo.username }}</span>
+        </el-form-item>
+        <el-form-item label="邮箱" prop="email">
+          <el-input v-model="profileForm.email" placeholder="请输入邮箱"></el-input>
         </el-form-item>
         <el-form-item label="头像">
           <div style="display:flex;align-items:center">
@@ -21,6 +24,9 @@
               <el-button size="small" type="primary">更换头像</el-button>
             </el-upload>
           </div>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="handleUpdateProfile">保存</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -59,6 +65,12 @@ export default {
       }
     }
     return {
+      profileForm: { email: '' },
+      profileRules: {
+        email: [
+          { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' }
+        ]
+      },
       pwdForm: { old_password: '', new_password: '', confirm_password: '' },
       pwdRules: {
         old_password: [{ required: true, message: '请输入原密码', trigger: 'blur' }],
@@ -79,6 +91,16 @@ export default {
       return { Authorization: 'Bearer ' + store.state.user.token }
     }
   },
+  watch: {
+    userInfo: {
+      handler(val) {
+        if (val) {
+          this.profileForm.email = val.email || ''
+        }
+      },
+      immediate: true
+    }
+  },
   methods: {
     async handleAvatarSuccess(res) {
       if (res.code === 200) {
@@ -92,6 +114,19 @@ export default {
       if (!isImage) { this.$message.error('只能上传 jpg/png/gif 格式') }
       if (!isLt2M) { this.$message.error('图片大小不能超过 2MB') }
       return isImage && isLt2M
+    },
+    handleUpdateProfile() {
+      this.$refs.profileFormRef.validate(async (valid) => {
+        if (!valid) return
+        try {
+          await this.$store.dispatch('user/updateProfile', {
+            email: this.profileForm.email
+          })
+          this.$message.success('保存成功')
+        } catch (e) {
+          // error handled by request interceptor
+        }
+      })
     },
     handleChangePassword() {
       this.$refs.pwdFormRef.validate(async (valid) => {

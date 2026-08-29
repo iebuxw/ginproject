@@ -1,4 +1,4 @@
-import { login, logout, getUserInfo, changePassword } from '@/api/auth'
+import { login, logout, getUserInfo, changePassword, updateProfile } from '@/api/auth'
 import { connectWS } from '@/utils/ws'
 
 const state = {
@@ -28,6 +28,10 @@ const actions = {
   },
   async changePassword(_, data) {
     await changePassword(data)
+  },
+  async updateProfile({ commit }, data) {
+    await updateProfile(data)
+    commit('SET_USER_INFO', { ...state.userInfo, ...data })
   },
   async logout({ commit }) {
     try {

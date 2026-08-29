@@ -80,6 +80,15 @@ func (s *AuthService) ChangePassword(userID uint, oldPassword, newPassword strin
 	return s.userDAO.Update(user)
 }
 
+func (s *AuthService) UpdateProfile(userID uint, email string) error {
+	user, err := s.userDAO.FindByID(userID)
+	if err != nil {
+		return errors.New("用户不存在")
+	}
+	user.Email = email
+	return s.userDAO.Update(user)
+}
+
 func (s *AuthService) IsBlacklisted(token string) bool {
 	key := fmt.Sprintf("blacklist:%s", token)
 	_, err := s.rdb.Get(context.Background(), key).Result()

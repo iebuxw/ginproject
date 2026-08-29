@@ -154,6 +154,7 @@ func (ctl *AuthController) UserInfo(c *gin.Context) {
 	uid, _ := userID.(uint)
 	var roleIDs []uint
 	var avatar string
+	var email string
 	if roles, ok := rolesVal.([]model.Role); ok {
 		for _, r := range roles {
 			roleIDs = append(roleIDs, r.ID)
@@ -162,6 +163,7 @@ func (ctl *AuthController) UserInfo(c *gin.Context) {
 	// 查库获取头像等完整信息
 	if user, err := ctl.userDAO.FindByID(uid); err == nil {
 		avatar = user.Avatar
+		email = user.Email
 	}
 	menus, _ := ctl.menuDAO.FindByRoleIDs(roleIDs)
 	menuTree := dao.BuildMenuTree(menus, 0)
@@ -175,7 +177,37 @@ func (ctl *AuthController) UserInfo(c *gin.Context) {
 		"id":          userID,
 		"username":    c.GetString("username"),
 		"avatar":      avatar,
+		"email":       email,
 		"menus":       menuTree,
 		"permissions": permissions,
 	})
+}
+
+// Profile 更新当前用户个人信息
+// @Summary 更新个人信息
+// @Description 更新当前用户的邮箱等个人信息
+// @Tags 认证
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param body body object true "个人信息"
+// @Param body.body.email body string false "邮箱"
+// @Success 200 {object} utils.Response "成功"
+// @Failure 200 {object} utils.Response "业务错误"
+// @Router /auth/profile [put]
+func (ctl *AuthController) Profile(c *gin.Context) {
+	var req struct {
+		Email string `json:"email"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.Error(c, 400, "参数错误")
+		return
+	}
+	userID, _ := c.Get("user_id")
+	uid, _ := userID.(uint)
+	if err := ctl.authService.UpdateProfile(uid, req.Email); err != nil {
+		utils.Error(c, 400, err.Error())
+		return
+	}
+	utils.Success(c, nil)
 }

@@ -32,7 +32,7 @@
     </el-aside>
 
     <el-container>
-      <el-header style="background:#fff;line-height:60px;border-bottom:1px solid #e6e6e6;text-align:right;padding-right:20px">
+      <el-header style="background:#fff;border-bottom:1px solid #e6e6e6;display:flex;align-items:center;justify-content:flex-end;padding-right:20px">
         <el-popover placement="bottom" width="320" trigger="click" @show="fetchRecent">
           <div style="max-height:300px;overflow-y:auto">
             <div v-for="item in recentList" :key="item.id" style="padding:8px 0;border-bottom:1px solid #eee;cursor:pointer" @click="readOne(item)">
@@ -45,8 +45,8 @@
             <el-button type="text" size="mini" @click="readAll">全部已读</el-button>
             <el-button type="text" size="mini" @click="goCenter">查看全部</el-button>
           </div>
-          <el-badge slot="reference" :value="unreadCount" :max="99" :hidden="unreadCount === 0" class="item">
-            <i class="el-icon-bell" style="font-size:20px;cursor:pointer"></i>
+          <el-badge slot="reference" :value="unreadCount" :max="99" :hidden="unreadCount === 0" class="item" style="margin-right:15px;margin-top:-10px;vertical-align:middle;line-height:1">
+            <i class="el-icon-bell" style="font-size:20px;cursor:pointer;line-height:1"></i>
           </el-badge>
         </el-popover>
         <el-dropdown @command="handleCommand">

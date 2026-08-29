@@ -1,12 +1,18 @@
 package controller
 
 import (
+	"fmt"
+	"net/http"
+	"net/url"
+	"strconv"
+	"time"
+
 	"ginproject/internal/model"
 	"ginproject/internal/service"
 	"ginproject/internal/utils"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/xuri/excelize/v2"
 )
 
 type RoleController struct{ roleService *service.RoleService }
@@ -154,4 +160,77 @@ func (ctl *RoleController) Delete(c *gin.Context) {
 		return
 	}
 	utils.Success(c, nil)
+}
+
+// Export 导出角色列表为 Excel
+// @Summary 导出角色列表
+// @Description 同步导出角色数据为 Excel 文件
+// @Tags 角色管理
+// @Security BearerAuth
+// @Produce application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+// @Param keyword query string false "搜索关键词（角色名/标识）"
+// @Success 200 {file} binary "Excel 文件"
+// @Router /roles/export [get]
+func (ctl *RoleController) Export(c *gin.Context) {
+	keyword := c.Query("keyword")
+
+	f := excelize.NewFile()
+	defer f.Close()
+
+	sheet := "角色列表"
+	f.SetSheetName("Sheet1", sheet)
+
+	sw, _ := f.NewStreamWriter(sheet)
+
+	headers := []string{"ID", "角色名", "角色标识", "描述", "状态", "创建时间"}
+	headerVals := make([]interface{}, len(headers))
+	for i, h := range headers {
+		headerVals[i] = h
+	}
+	sw.SetRow("A1", headerVals)
+
+	offset := 0
+	row := 2
+	batchSize := 5000
+	for {
+		roles, err := ctl.roleService.FindBatch(keyword, offset, batchSize)
+		if err != nil {
+			utils.Error(c, 500, err.Error())
+			return
+		}
+		if len(roles) == 0 {
+			break
+		}
+		for _, r := range roles {
+			cell, _ := excelize.CoordinatesToCellName(1, row)
+			statusText := "启用"
+			if r.Status != 1 {
+				statusText = "禁用"
+			}
+			sw.SetRow(cell, []interface{}{
+				r.ID, r.Name, r.Code, r.Description, statusText,
+				time.Time(r.CreatedAt).Format("2006-01-02 15:04:05"),
+			})
+			row++
+		}
+		offset += batchSize
+		if len(roles) < batchSize {
+			break
+		}
+	}
+	sw.Flush()
+
+	headerStyle, _ := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Bold: true},
+		Fill: excelize.Fill{Type: "pattern", Color: []string{"#E0E0E0"}, Pattern: 1},
+	})
+	f.SetCellStyle(sheet, "A1", "F1", headerStyle)
+
+	filename := fmt.Sprintf("角色列表_%s.xlsx", time.Now().Format("20060102_150405"))
+	c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename*=UTF-8''%s", url.PathEscape(filename)))
+
+	if _, err := f.WriteTo(c.Writer); err != nil {
+		utils.ErrorWithStatus(c, http.StatusInternalServerError, 500, "导出失败")
+	}
 }

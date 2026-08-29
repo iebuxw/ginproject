@@ -21,4 +21,8 @@ func (s *RoleService) FindPage(page, pageSize int, keyword string) ([]model.Role
 	return s.roleDAO.FindPage(page, pageSize, keyword)
 }
 
+func (s *RoleService) FindBatch(keyword string, offset, limit int) ([]model.Role, error) {
+	return s.roleDAO.FindBatch(keyword, offset, limit)
+}
+
 func (s *RoleService) FindAll() ([]model.Role, error) { return s.roleDAO.FindAll() }

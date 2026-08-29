@@ -45,6 +45,17 @@ func (d *RoleDAO) FindPage(page, pageSize int, keyword string) ([]model.Role, in
 	return roles, total, err
 }
 
+// FindBatch 分批查询（导出用），keyword 匹配角色名或角色标识
+func (d *RoleDAO) FindBatch(keyword string, offset, limit int) ([]model.Role, error) {
+	var roles []model.Role
+	q := d.db.Model(&model.Role{})
+	if keyword != "" {
+		q = q.Where("name LIKE ? OR code LIKE ?", "%"+keyword+"%", "%"+keyword+"%")
+	}
+	err := q.Offset(offset).Limit(limit).Order("id DESC").Find(&roles).Error
+	return roles, err
+}
+
 func (d *RoleDAO) FindAll() ([]model.Role, error) {
 	var roles []model.Role
 	err := d.db.Where("status = 1").Find(&roles).Error

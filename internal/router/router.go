@@ -87,6 +87,8 @@ func Setup(
 		// 角色管理
 		authorized.GET("/roles",
 			middleware.RequirePerm("role:list"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), roleCtrl.List)
+		authorized.GET("/roles/export",
+			middleware.RequirePerm("role:list"), middleware.RBAC(menuDAO), roleCtrl.Export)
 		authorized.GET("/roles/:id",
 			middleware.RequirePerm("role:query"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), roleCtrl.Get)
 		authorized.POST("/roles",

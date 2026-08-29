@@ -1,8 +1,10 @@
 let ws = null
 let reconnectTimer = null
+let disconnectRequested = false
 const handlers = {}
 
 export function connectWS(token) {
+  disconnectRequested = false
   if (ws && ws.readyState === WebSocket.OPEN) return
 
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
@@ -28,7 +30,7 @@ export function connectWS(token) {
 
   ws.onclose = () => {
     ws = null
-    reconnectTimer = setTimeout(() => connectWS(token), 5000)
+    if (!disconnectRequested) reconnectTimer = setTimeout(() => connectWS(token), 5000)
   }
 
   ws.onerror = () => {
@@ -37,6 +39,7 @@ export function connectWS(token) {
 }
 
 export function disconnectWS() {
+  disconnectRequested = true
   if (reconnectTimer) clearTimeout(reconnectTimer)
   if (ws) ws.close()
   ws = null

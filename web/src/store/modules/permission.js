@@ -11,7 +11,9 @@ const componentMap = {
   '/system/task-logs': () => import('@/views/task/logs.vue'),
   '/system/backup': () => import('@/views/backup/index.vue'),
   '/system/file': () => import('@/views/file/index.vue'),
-  '/system/setting': () => import('@/views/setting/index.vue')
+  '/system/setting': () => import('@/views/setting/index.vue'),
+  '/system/notification': () => import('@/views/notification/index.vue'),
+  '/system/notification-send': () => import('@/views/notification/send.vue')
 }
 
 const state = {

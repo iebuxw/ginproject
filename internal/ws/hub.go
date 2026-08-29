@@ -13,6 +13,9 @@ type Message struct {
 	Filename    string `json:"filename,omitempty"`
 	DownloadURL string `json:"download_url,omitempty"`
 	Error       string `json:"error,omitempty"`
+	Title       string `json:"title,omitempty"`
+	Content     string `json:"content,omitempty"`
+	ID          uint   `json:"id,omitempty"`
 }
 
 type userConn struct {

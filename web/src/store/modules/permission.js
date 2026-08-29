@@ -1,5 +1,6 @@
 import Layout from '@/layout/index.vue'
 
+// 菜单 path → 前端组件映射；新增菜单页必须在此添加
 const componentMap = {
   '/system/user': () => import('@/views/user/index.vue'),
   '/system/role': () => import('@/views/role/index.vue'),
@@ -32,11 +33,11 @@ const actions = {
   generateRoutes({ commit }, menus) {
     const routes = []
     menus.forEach(item => {
-      if (item.type === 1 && item.children) {
+      if (item.type === 1 && item.children) {// type=1 是目录
         item.children.forEach(child => {
-          if (child.type === 2) {
-            const comp = componentMap[child.path]
-            if (comp) {
+          if (child.type === 2) {           // type=2 是页面菜单
+            const comp = componentMap[child.path] // ← 用菜单的 path 查映射表
+            if (comp) {                 // 查到才生成路由，查不到就跳过
               routes.push({
                 path: child.path,
                 component: Layout,

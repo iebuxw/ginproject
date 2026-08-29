@@ -7,15 +7,20 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// Message 服务端下发的 WebSocket 消息；Type 区分消息种类，其余字段按类型可选填充
 type Message struct {
-	Type        string `json:"type"`
-	TaskID      string `json:"task_id,omitempty"`
-	Filename    string `json:"filename,omitempty"`
-	DownloadURL string `json:"download_url,omitempty"`
-	Error       string `json:"error,omitempty"`
-	Title       string `json:"title,omitempty"`
-	Content     string `json:"content,omitempty"`
-	ID          uint   `json:"id,omitempty"`
+	Type        string `json:"type"`                  // 消息类型：heartbeat / notification / export_complete / export_failed
+
+	// ↓ 导出结果用
+	TaskID      string `json:"task_id,omitempty"`     // 导出任务 ID（导出完成/失败）
+	Filename    string `json:"filename,omitempty"`    // 导出文件名
+	DownloadURL string `json:"download_url,omitempty"` // 导出下载地址
+	Error       string `json:"error,omitempty"`       // 导出失败原因
+
+	// ↓ 消息通知用
+	Title       string `json:"title,omitempty"`       // 消息标题（消息通知）
+	Content     string `json:"content,omitempty"`     // 消息内容（消息通知）
+	ID          uint   `json:"id,omitempty"`          // 消息 ID（消息通知）
 }
 
 type userConn struct {

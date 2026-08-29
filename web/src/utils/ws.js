@@ -1,6 +1,6 @@
 let ws = null
 let reconnectTimer = null
-let disconnectRequested = false
+let disconnectRequested = false // 避免登出后无限 401 重连循环"），区分 意外断开（false）和 主动断开（true）
 const handlers = {}
 
 export function connectWS(token) {

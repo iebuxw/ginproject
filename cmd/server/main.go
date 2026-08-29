@@ -110,15 +110,15 @@ func main() {
 	defer publishCh.Close()
 
 	// WebSocket Hub
-	hub := ws.NewHub()
-	wsCtrl := controller.NewWSController(hub, rdb, cfg)
+	hub := ws.NewHub()   // hub 就是 ws连接容器
+	wsCtrl := controller.NewWSController(hub, rdb, cfg)  // wsCtrl 负责 /api/ws 接口
 	notificationService := service.NewNotificationService(notificationDAO, userDAO, hub)
 
-	// Export Worker
+	// Export Worker（消费导出任务）
 	exportWorker := worker.NewExportWorker(rdb, amqpConn, logService, hub, notificationService)
 	go exportWorker.Start()
 
-	// Mail Worker
+	// Mail Worker（消费发邮件任务）
 	mailWorker := worker.NewMailWorker(amqpConn, alertMailService)
 	go mailWorker.Start()
 

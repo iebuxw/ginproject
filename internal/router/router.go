@@ -37,6 +37,7 @@ func Setup(
 	fileCtrl *controller.FileController,
 	dashboardCtrl *controller.DashboardController,
 	settingCtrl *controller.SystemSettingController,
+	notificationCtrl *controller.NotificationController,
 ) *gin.Engine {
 	r := gin.Default()
 	r.Use(middleware.CORS())
@@ -194,6 +195,20 @@ func Setup(
 		// 系统配置（读取已移到公开路由；写入需认证+权限）
 		authorized.PUT("/settings",
 			middleware.RequirePerm("setting:save"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), settingCtrl.Update)
+
+		// 消息中心
+		authorized.POST("/notifications",
+			middleware.RequirePerm("notification:send"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), notificationCtrl.Send)
+		authorized.GET("/notifications",
+			middleware.RequirePerm("notification:list"), middleware.RBAC(menuDAO), notificationCtrl.List)
+		authorized.DELETE("/notifications/:id",
+			middleware.RequirePerm("notification:delete"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), notificationCtrl.Delete)
+		authorized.GET("/notifications/mine",
+			notificationCtrl.Mine)
+		authorized.POST("/notifications/read",
+			notificationCtrl.Read)
+		authorized.GET("/notifications/unread-count",
+			notificationCtrl.UnreadCount)
 
 		// Logo 上传
 		authorized.POST("/upload/logo", uploadCtrl.UploadLogo)

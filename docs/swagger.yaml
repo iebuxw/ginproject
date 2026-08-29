@@ -55,6 +55,23 @@ definitions:
             type: integer
         type: object
     type: object
+  dao.NotificationItem:
+    properties:
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      read_at:
+        type: string
+      sender_id:
+        type: integer
+      title:
+        type: string
+      type:
+        type: integer
+    type: object
   model.CronTask:
     properties:
       body:
@@ -189,6 +206,25 @@ definitions:
         type: integer
       updated_at:
         type: string
+    type: object
+  model.Notification:
+    properties:
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      sender_id:
+        type: integer
+      target_type:
+        description: 1=全员 2=角色 3=指定用户
+        type: integer
+      title:
+        type: string
+      type:
+        description: 1=公告 2=站内信 3=系统事件
+        type: integer
     type: object
   model.Role:
     properties:
@@ -1328,6 +1364,205 @@ paths:
       summary: 编辑菜单
       tags:
       - 菜单管理
+  /notifications:
+    get:
+      parameters:
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      - description: 标题关键词
+        in: query
+        name: keyword
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  properties:
+                    list:
+                      items:
+                        $ref: '#/definitions/model.Notification'
+                      type: array
+                    total:
+                      type: integer
+                  type: object
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 管理端消息分页列表
+      tags:
+      - 消息中心
+    post:
+      consumes:
+      - application/json
+      description: 按收件范围发布消息并实时推送在线收件人
+      parameters:
+      - description: 消息内容
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            content:
+              type: string
+            role_ids:
+              items:
+                type: integer
+              type: array
+            target_type:
+              type: integer
+            title:
+              type: string
+            type:
+              type: integer
+            user_ids:
+              items:
+                type: integer
+              type: array
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 发布消息（公告/站内信）
+      tags:
+      - 消息中心
+  /notifications/{id}:
+    delete:
+      parameters:
+      - description: 消息 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 删除消息（连带收件记录）
+      tags:
+      - 消息中心
+  /notifications/mine:
+    get:
+      description: 按已读状态与消息类型筛选
+      parameters:
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      - default: 0
+        description: 已读状态 0=全部 1=未读 2=已读
+        in: query
+        name: read_status
+        type: integer
+      - default: 0
+        description: 消息类型 0=全部 1=公告 2=站内信 3=系统事件
+        in: query
+        name: type
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  properties:
+                    list:
+                      items:
+                        $ref: '#/definitions/dao.NotificationItem'
+                      type: array
+                    total:
+                      type: integer
+                  type: object
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 当前用户的消息分页列表
+      tags:
+      - 消息中心
+  /notifications/read:
+    post:
+      consumes:
+      - application/json
+      description: ids 数组批量已读；all=true 全部已读
+      parameters:
+      - description: 已读请求
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            all:
+              type: boolean
+            ids:
+              items:
+                type: integer
+              type: array
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: 批量/全部标记已读
+      tags:
+      - 消息中心
+  /notifications/unread-count:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  type: integer
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 当前用户未读消息数
+      tags:
+      - 消息中心
   /roles:
     get:
       description: 分页查询角色列表，支持关键词搜索

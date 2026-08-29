@@ -114,3 +114,24 @@ func expandTargets(target SendTarget) ([]uint, error) {
 	sort.Slice(result, func(i, j int) bool { return result[i] < result[j] })
 	return result, nil
 }
+
+// BuildTarget 把收件范围解析为具体 user_id 列表
+func (s *NotificationService) BuildTarget(targetType int, roleIDs, userIDs []uint) (SendTarget, error) {
+	switch targetType {
+	case 1: // 全员
+		ids, err := s.userDAO.FindAllIDs()
+		if err != nil {
+			return SendTarget{}, err
+		}
+		return SendTarget{TargetType: 1, UserIDs: ids}, nil
+	case 2: // 角色
+		ids, err := s.userDAO.FindIDsByRoleIDs(roleIDs)
+		if err != nil {
+			return SendTarget{}, err
+		}
+		return SendTarget{TargetType: 2, UserIDs: ids}, nil
+	case 3: // 指定用户
+		return SendTarget{TargetType: 3, UserIDs: userIDs}, nil
+	}
+	return SendTarget{}, errors.New("无效的收件范围")
+}

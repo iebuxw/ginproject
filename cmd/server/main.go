@@ -80,6 +80,7 @@ func main() {
 	dbBackupDAO := dao.NewDbBackupDAO(db)
 	fileDAO := dao.NewFileDAO(db)
 	systemSettingDAO := dao.NewSystemSettingDAO(db)
+	notificationDAO := dao.NewNotificationDAO(db)
 
 	// Service
 	authService := service.NewAuthService(userDAO, rdb, cfg)
@@ -111,6 +112,7 @@ func main() {
 	// WebSocket Hub
 	hub := ws.NewHub()
 	wsCtrl := controller.NewWSController(hub, rdb, cfg)
+	notificationService := service.NewNotificationService(notificationDAO, userDAO, hub)
 
 	// Export Worker
 	exportWorker := worker.NewExportWorker(rdb, amqpConn, logService, hub)
@@ -192,9 +194,10 @@ func main() {
 	uploadCtrl := controller.NewUploadController(userDAO)
 	fileCtrl := controller.NewFileController(fileService)
 	settingCtrl := controller.NewSystemSettingController(systemSettingService)
+	notificationCtrl := controller.NewNotificationController(notificationService)
 
 	// Router
-	r := router.Setup(cfg, authCtrl, userCtrl, roleCtrl, menuCtrl, logCtrl, loginLogCtrl, wsCtrl, uploadCtrl, authService, userDAO, menuDAO, logDAO, logRepo, dictTypeCtrl, dictDataCtrl, cronTaskCtrl, dbBackupCtrl, fileCtrl, dashboardCtrl, settingCtrl)
+	r := router.Setup(cfg, authCtrl, userCtrl, roleCtrl, menuCtrl, logCtrl, loginLogCtrl, wsCtrl, uploadCtrl, authService, userDAO, menuDAO, logDAO, logRepo, dictTypeCtrl, dictDataCtrl, cronTaskCtrl, dbBackupCtrl, fileCtrl, dashboardCtrl, settingCtrl, notificationCtrl)
 
 	log.Printf("Server running on :%s", cfg.Server.Port)
 	if err := r.Run(":" + cfg.Server.Port); err != nil {

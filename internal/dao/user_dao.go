@@ -77,3 +77,19 @@ func (d *UserDAO) FindPage(page, pageSize int, keyword string) ([]model.User, in
 	err := q.Preload("Roles").Offset((page - 1) * pageSize).Limit(pageSize).Order("id DESC").Find(&users).Error
 	return users, total, err
 }
+
+// FindAllIDs 全部启用用户的 id
+func (d *UserDAO) FindAllIDs() ([]uint, error) {
+	var ids []uint
+	err := d.db.Model(&model.User{}).Where("status = 1").Pluck("id", &ids).Error
+	return ids, err
+}
+
+// FindIDsByRoleIDs 角色绑定的用户 id（去重）
+func (d *UserDAO) FindIDsByRoleIDs(roleIDs []uint) ([]uint, error) {
+	var ids []uint
+	err := d.db.Table("user_roles").
+		Where("role_id IN ?", roleIDs).
+		Distinct().Pluck("user_id", &ids).Error
+	return ids, err
+}

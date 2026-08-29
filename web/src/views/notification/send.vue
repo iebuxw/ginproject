@@ -23,12 +23,12 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item v-if="form.target_type === 2" label="收件角色" prop="role_ids">
-          <el-select v-model="form.role_ids" multiple filterable placeholder="请选择角色" style="width:100%">
+          <el-select v-model="form.role_ids" multiple filterable placeholder="请选择角色" style="width:100%" @change="() => $refs.sendForm.validateField('target_type')">
             <el-option v-for="r in roles" :key="r.id" :label="r.name" :value="r.id"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item v-if="form.target_type === 3" label="收件用户" prop="user_ids">
-          <el-select v-model="form.user_ids" multiple filterable placeholder="请选择用户" style="width:100%">
+          <el-select v-model="form.user_ids" multiple filterable placeholder="请选择用户" style="width:100%" @change="() => $refs.sendForm.validateField('target_type')">
             <el-option v-for="u in users" :key="u.id" :label="u.username" :value="u.id"></el-option>
           </el-select>
         </el-form-item>

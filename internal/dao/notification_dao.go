@@ -27,6 +27,10 @@ func NewNotificationDAO(db *gorm.DB) *NotificationDAO {
 
 // CreateWithRecipients 事务写入消息本体+收件人
 func (d *NotificationDAO) CreateWithRecipients(n *model.Notification, userIDs []uint) error {
+	// DateTime 无 default tag，GORM 会把零值显式写入 created_at 列（绕过 DB DEFAULT CURRENT_TIMESTAMP），必须手动赋值
+	if time.Time(n.CreatedAt).IsZero() {
+		n.CreatedAt = model.DateTime(time.Now())
+	}
 	return d.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(n).Error; err != nil {
 			return err

@@ -33,7 +33,7 @@
 
     <el-container>
       <el-header style="background:#fff;border-bottom:1px solid #e6e6e6;display:flex;align-items:center;justify-content:flex-end;padding-right:20px">
-        <el-popover placement="bottom" width="320" trigger="click" @show="fetchRecent">
+        <el-popover ref="bellPopover" placement="bottom" width="320" trigger="click" @show="fetchRecent">
           <div style="max-height:300px;overflow-y:auto">
             <div v-for="item in recentList" :key="item.id" style="padding:8px 0;border-bottom:1px solid #eee;cursor:pointer" @click="readOne(item)">
               <div :style="item.read_at ? '' : 'font-weight:bold'">{{ item.title }}</div>
@@ -49,6 +49,15 @@
             <i class="el-icon-bell" style="font-size:20px;cursor:pointer;line-height:1"></i>
           </el-badge>
         </el-popover>
+
+        <!-- 铃铛消息详情 -->
+        <el-dialog :title="detail ? detail.title : ''" :visible.sync="detailVisible" width="500px">
+          <div style="white-space:pre-wrap;line-height:1.8">{{ detail ? detail.content : '' }}</div>
+          <span slot="footer">
+            <el-button type="primary" @click="detailVisible = false">关闭</el-button>
+          </span>
+        </el-dialog>
+
         <el-dropdown @command="handleCommand">
           <span style="cursor:pointer;display:inline-flex;align-items:center">
             <el-avatar :size="30" :src="userInfo.avatar" style="margin-right:8px">
@@ -84,7 +93,9 @@ export default {
   data() {
     return {
       menus: [],
-      recentList: []
+      recentList: [],
+      detail: null,
+      detailVisible: false
     }
   },
   computed: {
@@ -145,6 +156,9 @@ export default {
         this.$store.commit('notification/DEC_UNREAD')
         this.fetchRecent()
       } catch (e) { /* 静默 */ }
+      this.detail = item
+      this.detailVisible = true
+      this.$refs.bellPopover.showPopper = false
     },
     async readAll() {
       try {

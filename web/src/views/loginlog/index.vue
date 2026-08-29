@@ -36,7 +36,7 @@ export default {
   data() {
     return {
       list: [], page: 1, pageSize: 10, total: 0,
-      filters: { username: '', status: '' }
+      filters: { username: '', status: null }
     }
   },
   created() { this.fetchData() },

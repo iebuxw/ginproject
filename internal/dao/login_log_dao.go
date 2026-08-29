@@ -23,7 +23,7 @@ func (d *LoginLogDAO) FindPage(page, pageSize int, username string, status int) 
 	if username != "" {
 		q = q.Where("username LIKE ?", "%"+username+"%")
 	}
-	if status > 0 {
+	if status >= 0 {
 		q = q.Where("status = ?", status)
 	}
 	q.Count(&total)

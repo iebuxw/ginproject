@@ -25,14 +25,17 @@ func NewLoginLogController(loginLogService *service.LoginLogService) *LoginLogCo
 // @Param page query int false "页码" default(1)
 // @Param page_size query int false "每页数量" default(10)
 // @Param username query string false "用户名筛选"
-// @Param status query int false "状态筛选 1=成功 0=失败" default(0)
+// @Param status query int false "状态筛选 1=成功 0=失败 -1=不筛选" default(-1)
 // @Success 200 {object} utils.Response{data=object{list=[]model.LoginLog,total=int}} "成功"
 // @Router /login-logs [get]
 func (ctl *LoginLogController) List(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
 	username := c.Query("username")
-	status, _ := strconv.Atoi(c.DefaultQuery("status", "0"))
+	status := -1
+	if s := c.Query("status"); s != "" {
+		status, _ = strconv.Atoi(s)
+	}
 	logs, total, err := ctl.loginLogService.FindPage(page, pageSize, username, status)
 	if err != nil {
 		utils.Error(c, 500, err.Error())

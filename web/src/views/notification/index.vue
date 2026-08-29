@@ -29,6 +29,9 @@
             <span :style="s.row.read_at ? '' : 'font-weight:bold'">{{ s.row.title }}</span>
           </template>
         </el-table-column>
+        <el-table-column label="发布人" width="110" align="center">
+          <template slot-scope="s">{{ s.row.sender_name || '系统' }}</template>
+        </el-table-column>
         <el-table-column prop="created_at" label="发布时间" width="160" align="center"></el-table-column>
         <el-table-column label="状态" width="70" align="center">
           <template slot-scope="s">

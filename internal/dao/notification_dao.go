@@ -10,13 +10,14 @@ import (
 
 // NotificationItem 用户视角的消息行（join 结果）
 type NotificationItem struct {
-	ID        uint            `json:"id"`
-	Type      int             `json:"type"`
-	Title     string          `json:"title"`
-	Content   string          `json:"content"`
-	SenderID  uint            `json:"sender_id"`
-	CreatedAt model.DateTime  `json:"created_at"`
-	ReadAt    *model.DateTime `json:"read_at"`
+	ID         uint            `json:"id"`
+	Type       int             `json:"type"`
+	Title      string          `json:"title"`
+	Content    string          `json:"content"`
+	SenderID   uint            `json:"sender_id"`
+	SenderName string          `json:"sender_name"` // 发布人用户名；系统事件（sender_id=0）为空
+	CreatedAt  model.DateTime  `json:"created_at"`
+	ReadAt     *model.DateTime `json:"read_at"`
 }
 
 type NotificationDAO struct{ db *gorm.DB }
@@ -77,8 +78,9 @@ func (d *NotificationDAO) FindUserPage(userID uint, page, pageSize, readStatus, 
 	var list []NotificationItem
 	var total int64
 	q := d.db.Table("notifications n").
-		Select("n.id, n.type, n.title, n.content, n.sender_id, n.created_at, r.read_at").
-		Joins("JOIN notification_recipients r ON r.notification_id = n.id AND r.user_id = ?", userID)
+		Select("n.id, n.type, n.title, n.content, n.sender_id, n.created_at, r.read_at, u.username AS sender_name").
+		Joins("JOIN notification_recipients r ON r.notification_id = n.id AND r.user_id = ?", userID).
+		Joins("LEFT JOIN users u ON u.id = n.sender_id")
 	if readStatus == 1 {
 		q = q.Where("r.read_at IS NULL")
 	} else if readStatus == 2 {

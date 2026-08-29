@@ -9,9 +9,14 @@
           <el-button type="primary" size="small" @click="openDialog()">新增用户</el-button>
         </div>
       </div>
-      <el-input v-model="keyword" placeholder="搜索用户名/邮箱" style="width:250px;margin-bottom:10px" @keyup.enter.native="fetchData" clearable @clear="fetchData">
-        <el-button slot="append" icon="el-icon-search" @click="fetchData"></el-button>
-      </el-input>
+      <el-form :inline="true">
+        <el-form-item>
+          <el-input v-model="keyword" placeholder="搜索用户名/邮箱" clearable @keyup.enter.native="fetchData" style="width:250px"></el-input>
+        </el-form-item>
+        <el-form-item>
+          <el-button @click="fetchData">查询</el-button>
+        </el-form-item>
+      </el-form>
       <el-table :data="list" border>
         <el-table-column prop="id" label="ID" width="60"></el-table-column>
         <el-table-column label="头像" width="80">

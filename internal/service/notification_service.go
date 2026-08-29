@@ -59,6 +59,7 @@ func (s *NotificationService) SendSystemEvent(title, content string, userID uint
 	}
 	if err := s.notificationDAO.CreateWithRecipients(n, []uint{userID}); err != nil {
 		log.Printf("系统事件消息落库失败: %v", err)
+		return
 	}
 	s.hub.Send(userID, ws.Message{
 		Type:    "notification",

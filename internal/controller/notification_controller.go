@@ -72,6 +72,10 @@ func (ctl *NotificationController) Send(c *gin.Context) {
 		utils.Error(c, 400, err.Error())
 		return
 	}
+	if len(target.UserIDs) == 0 {
+		utils.Error(c, 400, "没有匹配的收件人")
+		return
+	}
 	if err := ctl.notificationService.Send(n, target); err != nil {
 		utils.Error(c, 500, err.Error())
 		return
@@ -92,6 +96,12 @@ func (ctl *NotificationController) Send(c *gin.Context) {
 func (ctl *NotificationController) List(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 10
+	}
 	keyword := c.Query("keyword")
 	list, total, err := ctl.notificationService.FindPage(page, pageSize, keyword)
 	if err != nil {
@@ -135,6 +145,12 @@ func (ctl *NotificationController) Mine(c *gin.Context) {
 	uid, _ := userID.(uint)
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 10
+	}
 	readStatus, _ := strconv.Atoi(c.DefaultQuery("read_status", "0"))
 	notifType, _ := strconv.Atoi(c.DefaultQuery("type", "0"))
 	var list []dao.NotificationItem

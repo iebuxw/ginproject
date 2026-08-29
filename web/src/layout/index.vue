@@ -33,6 +33,22 @@
 
     <el-container>
       <el-header style="background:#fff;line-height:60px;border-bottom:1px solid #e6e6e6;text-align:right;padding-right:20px">
+        <el-popover placement="bottom" width="320" trigger="click" @show="fetchRecent">
+          <div style="max-height:300px;overflow-y:auto">
+            <div v-for="item in recentList" :key="item.id" style="padding:8px 0;border-bottom:1px solid #eee;cursor:pointer" @click="readOne(item)">
+              <div :style="item.read_at ? '' : 'font-weight:bold'">{{ item.title }}</div>
+              <div style="color:#909399;font-size:12px">{{ item.created_at }}</div>
+            </div>
+            <div v-if="recentList.length === 0" style="text-align:center;color:#909399;padding:15px">暂无未读消息</div>
+          </div>
+          <div style="text-align:center;margin-top:8px">
+            <el-button type="text" size="mini" @click="readAll">全部已读</el-button>
+            <el-button type="text" size="mini" @click="goCenter">查看全部</el-button>
+          </div>
+          <el-badge slot="reference" :value="unreadCount" :max="99" :hidden="unreadCount === 0" class="item">
+            <i class="el-icon-bell" style="font-size:20px;cursor:pointer"></i>
+          </el-badge>
+        </el-popover>
         <el-dropdown @command="handleCommand">
           <span style="cursor:pointer;display:inline-flex;align-items:center">
             <el-avatar :size="30" :src="userInfo.avatar" style="margin-right:8px">
@@ -59,20 +75,23 @@
 
 <script>
 import { mapState } from 'vuex'
-import { connectWS, disconnectWS } from '@/utils/ws'
+import { connectWS, disconnectWS, onWSMessage, offWSMessage } from '@/utils/ws'
+import { getUnreadCount, getMyNotifications, markRead } from '@/api/notification'
 import { getSettings } from '@/api/setting'
 import TagsView from './components/TagsView.vue'
 export default {
   components: { TagsView },
   data() {
     return {
-      menus: []
+      menus: [],
+      recentList: []
     }
   },
   computed: {
     ...mapState('user', ['userInfo']),
     ...mapState('tagsView', ['cachedViews']),
     ...mapState('settings', { siteName: 'siteName', siteLogo: 'siteLogo' }),
+    ...mapState('notification', ['unreadCount']),
     key() {
       return this.$route.path
     }
@@ -81,9 +100,13 @@ export default {
     this.menus = this.$store.state.permission.menus
     const token = this.$store.state.user.token
     if (token) connectWS(token)
+    this.fetchUnread()
+    this._onNotify = () => { this.fetchUnread() }
+    onWSMessage('notification', this._onNotify)
     this.fetchSettings()
   },
   beforeDestroy() {
+    offWSMessage('notification', this._onNotify)
     disconnectWS()
   },
   methods: {
@@ -102,6 +125,36 @@ export default {
       } catch (e) {
         // 配置加载失败使用默认值
       }
+    },
+    async fetchUnread() {
+      try {
+        const res = await getUnreadCount()
+        if (res.code === 200) this.$store.commit('notification/SET_UNREAD', res.data)
+      } catch (e) { /* 静默 */ }
+    },
+    async fetchRecent() {
+      try {
+        const res = await getMyNotifications({ page: 1, page_size: 5, read_status: 1 })
+        if (res.code === 200) this.recentList = res.data.list || []
+      } catch (e) { /* 静默 */ }
+    },
+    async readOne(item) {
+      try {
+        await markRead({ ids: [item.id] })
+        item.read_at = 'just-now'
+        this.$store.commit('notification/DEC_UNREAD')
+        this.fetchRecent()
+      } catch (e) { /* 静默 */ }
+    },
+    async readAll() {
+      try {
+        await markRead({ all: true })
+        this.$store.commit('notification/CLEAR_UNREAD')
+        this.recentList = []
+      } catch (e) { /* 静默 */ }
+    },
+    goCenter() {
+      this.$router.push('/system/notification')
     },
     async handleCommand(cmd) {
       if (cmd === 'profile') {

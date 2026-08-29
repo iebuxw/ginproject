@@ -114,6 +114,7 @@ export default {
         try {
           await markRead({ ids: [row.id] })
           row.read_at = 'just-now'
+          this.$store.commit('notification/DEC_UNREAD')
         } catch (e) { /* 已读失败不阻塞阅读 */ }
       }
     },
@@ -121,6 +122,7 @@ export default {
       try {
         await markRead({ all: true })
         this.$message.success('已全部标记为已读')
+        this.$store.commit('notification/CLEAR_UNREAD')
         this.fetchList()
       } catch (e) { /* request.js 已统一提示 */ }
     }

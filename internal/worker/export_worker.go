@@ -27,18 +27,19 @@ const (
 )
 
 type ExportWorker struct {
-	rdb        *redis.Client
-	amqpConn   *amqp091.Connection
-	logService *service.LogService
-	hub        *ws.Hub
+	rdb                 *redis.Client
+	amqpConn            *amqp091.Connection
+	logService          *service.LogService
+	hub                 *ws.Hub
+	notificationService *service.NotificationService
 }
 
 type queueMessage struct {
 	TaskID string `json:"task_id"`
 }
 
-func NewExportWorker(rdb *redis.Client, amqpConn *amqp091.Connection, logService *service.LogService, hub *ws.Hub) *ExportWorker {
-	return &ExportWorker{rdb: rdb, amqpConn: amqpConn, logService: logService, hub: hub}
+func NewExportWorker(rdb *redis.Client, amqpConn *amqp091.Connection, logService *service.LogService, hub *ws.Hub, notificationService *service.NotificationService) *ExportWorker {
+	return &ExportWorker{rdb: rdb, amqpConn: amqpConn, logService: logService, hub: hub, notificationService: notificationService}
 }
 
 func (w *ExportWorker) Start() {
@@ -106,6 +107,11 @@ func (w *ExportWorker) processTask(taskID string) {
 			TaskID: taskID,
 			Error:  err.Error(),
 		})
+		w.notificationService.SendSystemEvent(
+			fmt.Sprintf("导出失败: %s", filename),
+			fmt.Sprintf("任务 %s 导出失败: %s", taskID, err.Error()),
+			uid,
+		)
 		return
 	}
 
@@ -119,6 +125,12 @@ func (w *ExportWorker) processTask(taskID string) {
 		Filename:    filename,
 		DownloadURL: "/api/logs/download/" + taskID,
 	})
+
+	w.notificationService.SendSystemEvent(
+		fmt.Sprintf("导出完成: %s", filename),
+		fmt.Sprintf("导出任务完成，文件 %s 可在消息记录中查看下载链接: %s", filename, "/api/logs/download/"+taskID),
+		uid,
+	)
 }
 
 func (w *ExportWorker) buildExcel(filter dao.LogFilter, filePath string) error {

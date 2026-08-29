@@ -115,7 +115,7 @@ func main() {
 	notificationService := service.NewNotificationService(notificationDAO, userDAO, hub)
 
 	// Export Worker
-	exportWorker := worker.NewExportWorker(rdb, amqpConn, logService, hub)
+	exportWorker := worker.NewExportWorker(rdb, amqpConn, logService, hub, notificationService)
 	go exportWorker.Start()
 
 	// Mail Worker

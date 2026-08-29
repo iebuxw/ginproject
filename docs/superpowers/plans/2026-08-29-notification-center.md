@@ -256,6 +256,7 @@ git commit -m "feat: 消息中心 DAO（写扩散事务、用户视角查询、�
 **Files:**
 - Create: `internal/service/notification_service.go`
 - Create: `internal/service/notification_service_test.go`
+- Modify: `internal/ws/hub.go:10-16`（Message 结构补三个 omitempty 字段）
 
 - [ ] **Step 1: 写失败测试**
 
@@ -333,9 +334,24 @@ func TestExpandTargets(t *testing.T) {
 Run: `go test ./internal/service/ -run TestExpandTargets -v`
 Expected: FAIL（`expandTargets`、`SendTarget` 未定义）
 
-- [ ] **Step 3: 写 Service 实现**
+- [ ] **Step 3: 扩展 ws.Message 并写 Service 实现**
 
-`internal/service/notification_service.go`:
+先改 `internal/ws/hub.go` 的 Message 结构（加三个 omitempty 字段，不破坏现有 JSON 契约）:
+
+```go
+type Message struct {
+	Type        string `json:"type"`
+	TaskID      string `json:"task_id,omitempty"`
+	Filename    string `json:"filename,omitempty"`
+	DownloadURL string `json:"download_url,omitempty"`
+	Error       string `json:"error,omitempty"`
+	Title       string `json:"title,omitempty"`
+	Content     string `json:"content,omitempty"`
+	ID          uint   `json:"id,omitempty"`
+}
+```
+
+然后写 `internal/service/notification_service.go`:
 
 ```go
 package service
@@ -379,8 +395,10 @@ func (s *NotificationService) Send(n *model.Notification, target SendTarget) err
 	// 推送在线用户（离线静默，属正常情况）
 	for _, uid := range userIDs {
 		s.hub.Send(uid, ws.Message{
-			Type: "notification",
-			Title: n.Title,
+			Type:    "notification",
+			ID:      n.ID,
+			Title:   n.Title,
+			Content: n.Content,
 		})
 	}
 	return nil
@@ -399,8 +417,10 @@ func (s *NotificationService) SendSystemEvent(title, content string, userID uint
 		log.Printf("系统事件消息落库失败: %v", err)
 	}
 	s.hub.Send(userID, ws.Message{
-		Type:  "notification",
-		Title: title,
+		Type:    "notification",
+		ID:      n.ID,
+		Title:   title,
+		Content: content,
 	})
 }
 
@@ -463,7 +483,7 @@ Expected: PASS（5 个子测试全过）
 - [ ] **Step 5: Commit**
 
 ```bash
-git add internal/service/notification_service.go internal/service/notification_service_test.go
+git add internal/service/notification_service.go internal/service/notification_service_test.go internal/ws/hub.go
 git commit -m "feat: 消息中心 Service（收件人展开去重、发布推送、系统事件）"
 ```
 

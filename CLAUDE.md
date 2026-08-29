@@ -44,13 +44,11 @@ docker compose restart redis  # 重启单个服务
 
 **默认管理员：** `admin` / `admin`（迁移种子 000003 写入）；但 DB 中实际密码已被改为 `123456`，登录受阻先用 `123456`，**未经用户明确同意不得擅自重置密码/用户数据**。
 
+** DDL 和种子数据由 golang-migrate 管理（`migrations/` 目录，具体文件以目录现状为准），启动时自动执行。新增迁移按 `00000N_xxx` 递增创建成对 .up/.down 文件，建表用 `IF NOT EXISTS`、种子用 `INSERT IGNORE` + 显式 id 保证幂等。
+
 ### 本地运行须知
 
 `.env` 被 gitignore，仓库内的 `.env` 填的是 docker 服务名（`mysql`/`redis`/`rabbitmq`/`elasticsearch`）。本机 `go run` 需覆盖：`MYSQL_PORT=3307`、`REDIS_PORT=6380`、`RABBITMQ_HOST=127.0.0.1`、`RABBITMQ_PORT=5672`、`ES_HOST=127.0.0.1`。
-
-### 测试与 Lint
-
-**测试极少：仅 `internal/middleware/logger_test.go`（操作日志密码脱敏），用 `go test ./...` 运行；无 lint/typecheck、无 CI。** DDL 和种子数据由 golang-migrate 管理（`migrations/` 目录，具体文件以目录现状为准），启动时自动执行。新增迁移按 `00000N_xxx` 递增创建成对 .up/.down 文件，建表用 `IF NOT EXISTS`、种子用 `INSERT IGNORE` + 显式 id 保证幂等。
 
 ## 架构
 
@@ -63,7 +61,7 @@ internal/
   controller/                # 请求处理，参数绑定，调用 service
   service/                   # 业务逻辑（密码哈希、菜单树、token 黑名单）
   dao/                       # GORM 数据访问
-  model/                     # 结构体：User、Role、Menu、OperationLog、LoginLog、DictType、DictData、CronTask、CronTaskExecution、DateTime
+  model/                     # 结构体：User、Role、Menu等
   scheduler/                 # 定时任务调度器（robfig/cron/v3）+ 预定义命令注册表
 ```
 
@@ -106,71 +104,18 @@ User ──N:M── Role ──N:M── Menu
 - params 落库前经 `maskSensitiveParams` 脱敏（password 类字段值替换为 `***`，JSON 与非 JSON 均处理）
 - 创建时间用自定义 `DateTime` 类型，JSON 格式 `2006-01-02 15:04:05`
 
-### 数据字典
-
-- `dict_type`（类型）+ `dict_data`（字典数据）两张表，DAO 为 `DictTypeDAO`/`DictDataDAO`，Service 为 `DictTypeService`/`DictDataService`（前者持有 dictDataDAO）
-- 前端页面 `web/src/views/dict/`，路由 `dict:list` 等权限点
-
-### 登录异常邮件告警
-
-- 登录失败触发告警：发布 RabbitMQ 消息 + Redis 限频，`worker.MailWorker` 消费并发送（SMTP 支持 465 隐式 SSL）
-
-### 操作日志 ES 双写（学习功能）
-
-- 中间件写 MySQL 后同步写 ES（`es.LogRepo.Index`，`_id`=MySQL 主键，`Refresh:"true"` 立即可见）；ES 不可用仅 `log.Printf` 告警，不阻断请求
-- `GET /logs` 优先走 ES（bool / multi_match / range / highlight，IK 中文分词），ES 失败自动回退 MySQL；响应带 `data_source` 标记（`es`/`mysql`）
-- ES 初始化失败不 fatal：`main.go` 置 `esClient=nil`，`logRepo` 始终非 nil，`Enabled()` 返回 false 即整体降级
-- **版本强绑定**：IK 插件必须与 ES 严格同版本（当前均 7.17.15），镜像在 `docker/elasticsearch.Dockerfile` 从 `get.infini.cloud/elasticsearch/analysis-ik` 下载
-- `es.NewLogRepo(cli *es.Client)` 接受包装的 `*es.Client`（可传 nil），内部经 `cli.RawClient()` 拿原生 client
-
-### 异步导出流程（命名看不出来）
-
-1. `POST /api/logs/export`：写 Redis task `excel:task:<id>`（pending、user_id、method）+ 发布到 RabbitMQ 队列 `excel.export`
-2. `worker.Start()`（main.go 里 goroutine）消费 -> 用 excelize `StreamWriter` 流式写 `exports/<taskID>.xlsx`（`exports/` 已 gitignore）-> 回写 task 状态
-3. WebSocket 推 `export_complete` / `export_failed`
-4. 前端轮询 `GET /api/logs/export-status?task_id=`，完成后 `GET /api/logs/download/:taskID` 下载（下载后服务端删除该 xlsx）
-
 **Excel 写逻辑务必用 `StreamWriter.SetRow`，不要和 `SetCellValue` 混用**（混用会导致表头丢失）。
 
 ### 数据库备份与恢复
 
-- `db_backups` 表存储备份记录，`backups/` 目录存放 `.sql.gz` 文件（已 gitignore）
-- 备份通过 `os/exec` 调用 `mysqldump | gzip`，恢复用 `gunzip -c | mysql`
 - **mysqldump 必须排除 `db_backups` 表**（`--ignore-table`），否则恢复时会丢失备份记录
-- 恢复前自动创建快照（type=snapshot），记录来源信息到 remark
-- Docker 镜像需安装 `mysql-client` + `gzip`（见 `docker/Dockerfile`）
-- `backup_db` 和 `clean_backup` 为预定义命令，注册在 `scheduler/commands.go`，在 `main.go` 注入真实实现
-- 前端 `web/src/views/backup/index.vue`，路由权限 `db_backup:*`
-- 恢复操作需在对话框中输入"确认恢复"才能点击确认按钮
-
-### 定时任务（CronTask）
-
-- `cron_tasks`（任务）+ `cron_task_executions`（执行日志）两张表；Cron 表达式为 **6 段（秒 分 时 日 月 周）**，非标准 5 段
-- 任务两种模式：`command` 非空走**预定义命令**（注册表 `scheduler/commands.go`，提供 name/label/handler，进程内直接调用，任务的 url/headers/body 被忽略）；为空走自定义 HTTP。前端编辑对话框命令下拉中 `_custom` 即自定义模式，命令列表来自 `GET /api/cron-tasks/commands`
-- 任务增删改/启停后由 Service 调 `Reload()` 全量重建（热更新）；`running` sync.Map 防重叠，上次未执行完记跳过；页面「立即执行」走 `RunNow`，trigger=manual
-- 执行状态：0=成功，1=失败，2=跳过；响应体截断至 2000 字符
-- 前端 `web/src/views/task/`（index.vue 任务管理 + logs.vue 执行日志），权限点 `cron:list/query/add/edit/delete/run/log`
-
-### WebSocket
-
-`/api/ws` 是**公开路由**（不走 JWT），由 `ws.Hub` 维护连接并按 `user_id` 推送。nginx 需转发 `Upgrade` 头（已在 `docker/nginx.conf` 配置）。
-
-`POST /api/logs/cleanup` 同为**公开路由**：请求头 `X-Cleanup-Secret`（优先）或 query `secret` 与 `.env` 的 `LOG_CLEANUP_SECRET` 比对，通过后分批清理过期日志（days 缺省 30，校验失败返回业务码 400 而非 HTTP 状态码）。
 
 ## 注意事项
-
-- `utils.Error` 返回 HTTP 200（业务错误码），需要改 HTTP 状态码用 `ErrorWithStatus`
-- `OperationLog.Module` / `Action` 字段中间件未填充，当前始终为空
-- 用户管理 CRUD 不支持分配角色
-- `.env`、`web/dist/`、`exports/`、`backups/` 均 gitignore，Docker 在构建阶段自行编译前端
 - Redis 是 `redis:3.2-alpine`，**不支持 HSET 多字段**（4.0+ 才支持），多字段需拆成单字段调用
 - 前端是 **Vue 2 + Element UI**（不是 Vue 3）；`web/src/store/modules/permission.js` 用后端菜单树动态生成路由，**新增菜单必须在 `componentMap` 中添加路由映射**
-- RabbitMQ 是 `rabbitmq:3-management`，通过 `amqp091-go` 连接
-- WebSocket 走 `gorilla/websocket`，nginx 需配置 `proxy_set_header Upgrade $http_upgrade` 转发 WebSocket 升级头
 - `DateTime` 类型不会触发 GORM 自动时间戳，需手动设置 `CreatedAt`
 - 手动操作 MySQL 插入中文时需加 `--default-character-set=utf8mb4`，否则乱码
 - 提交习惯：按功能模块分批提交，不同功能不混在一个 commit（如"修复字典操作列"和"新增用户描述字段"分开提交）
-- UI 文案全部中文
 
 ## 工作方式
 

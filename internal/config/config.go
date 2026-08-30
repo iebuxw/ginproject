@@ -11,6 +11,7 @@ type Config struct {
 	Database         DatabaseConfig
 	Redis            RedisConfig
 	JWT              JWTConfig
+	LoginLock        LoginLockConfig
 	RabbitMQ         RabbitMQConfig
 	Mail             MailConfig
 	Elasticsearch    ElasticsearchConfig
@@ -34,6 +35,13 @@ type JWTConfig struct {
 	Secret      string
 	ExpireHours int
 }
+
+// LoginLockConfig 登录失败锁定配置；MaxAttempts 次失败内累计触发，DurationMinutes 为累计窗口与锁定时长（分钟）
+type LoginLockConfig struct {
+	MaxAttempts     int
+	DurationMinutes int
+}
+
 type RabbitMQConfig struct {
 	Host     string
 	Port     string
@@ -74,6 +82,8 @@ func Load() *Config {
 
 	viper.SetDefault("SERVER_PORT", "8000")
 	viper.SetDefault("JWT_EXPIRE_HOURS", 24)
+	viper.SetDefault("LOGIN_LOCK_MAX_ATTEMPTS", 5)
+	viper.SetDefault("LOGIN_LOCK_DURATION", 15)
 
 	return &Config{
 		Server: ServerConfig{Port: viper.GetString("SERVER_PORT")},
@@ -92,6 +102,10 @@ func Load() *Config {
 		JWT: JWTConfig{
 			Secret:      viper.GetString("JWT_SECRET"),
 			ExpireHours: viper.GetInt("JWT_EXPIRE_HOURS"),
+		},
+		LoginLock: LoginLockConfig{
+			MaxAttempts:     viper.GetInt("LOGIN_LOCK_MAX_ATTEMPTS"),
+			DurationMinutes: viper.GetInt("LOGIN_LOCK_DURATION"),
 		},
 		RabbitMQ: RabbitMQConfig{
 			Host:     viper.GetString("RABBITMQ_HOST"),

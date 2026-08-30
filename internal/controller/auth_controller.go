@@ -59,6 +59,7 @@ func (ctl *AuthController) Login(c *gin.Context) {
 		_ = ctl.loginLogService.Create(&model.LoginLog{
 			Username: req.Username, Status: 0, Message: err.Error(), IP: c.ClientIP(), CreatedAt: model.DateTime(time.Now()),
 		})
+		// 仅凭据错误发告警邮件；锁定期间（ErrAccountLocked）不重复发
 		if errors.Is(err, service.ErrInvalidCredentials) {
 			ctl.publishLoginAlert(req.Username, c.ClientIP(), err.Error())
 		}

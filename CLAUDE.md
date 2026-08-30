@@ -129,6 +129,11 @@ User ──N:M── Role ──N:M── Menu
 - 每次交付的改动需保持 Git 提交粒度清晰，避免将多个独立的子任务混在一个 Commit 中
 - 改动代码时，若存在相关文档或函数注释（如 JSDoc / GoDoc / PHPDoc 等），必须同步更新，保持代码与注释一致；若原代码无注释则无需专门补写
 - Bash `$()` 嵌套子命令优先拆开分步执行，不要询问用户
+- 自动化验证：改动后不要本地 go run，直接 Docker 重建对应容器并验证：
+  - 后端改动：`docker compose up -d --build go-app`，然后 curl 调用新增/修改的 API 确认返回值
+  - 前端改动：`docker compose up -d --build nginx`，然后浏览器打开页面确认渲染
+  - agent-browser 自动化验证（登录后用 `eval` 查 DOM）：`agent-browser --ignore-https-errors --args "--no-sandbox" open "https://localhost:8443"`。**全局选项（`--ignore-https-errors`、`--args`）必须放在 `open` 子命令之前**；本机 Chrome 不加 `--no-sandbox` 会启动失败（exit 3）；忽略证书**必须用官方标志 `--ignore-https-errors`**，把 Chrome 原生 `--ignore-certificate-errors` 塞进 `--args` 会与 `--no-sandbox` 冲突导致 Chrome 无法启动
+  - 无法手工回归测试的，生成手工回归测试建议清单，交由用户验证
 
 ### 小改动纪律（防范围膨胀）
 
@@ -147,11 +152,6 @@ User ──N:M── Role ──N:M── Menu
 - 不改变对外契约：路由、请求/响应 JSON 字段、权限点、菜单树结构保持兼容
 - 不修改已应用的迁移文件（migrations/），只能新增成对迁移
 - 不删除看似无用的历史代码/字段/路由，删除前先询问
-- 自动化验证：改动后不要本地 go run，直接 Docker 重建对应容器并验证：
-  - 后端改动：`docker compose up -d --build go-app`，然后 curl 调用新增/修改的 API 确认返回值
-  - 前端改动：`docker compose up -d --build nginx`，然后浏览器打开页面确认渲染
-  - agent-browser 自动化验证（登录后用 `eval` 查 DOM）：`agent-browser --ignore-https-errors --args "--no-sandbox" open "https://localhost:8443"`。**全局选项（`--ignore-https-errors`、`--args`）必须放在 `open` 子命令之前**；本机 Chrome 不加 `--no-sandbox` 会启动失败（exit 3）；忽略证书**必须用官方标志 `--ignore-https-errors`**，把 Chrome 原生 `--ignore-certificate-errors` 塞进 `--args` 会与 `--no-sandbox` 冲突导致 Chrome 无法启动
-  - 无法手工回归测试的，生成手工回归测试建议清单，交由用户验证
 
 ### 复用优先（防重复造轮子）
 

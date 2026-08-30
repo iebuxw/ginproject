@@ -66,7 +66,7 @@ func Setup(
 		// 文件上传
 		authorized.POST("/upload/avatar", uploadCtrl.UploadAvatar)
 
-		// 用户管理
+		// 管理员管理
 		authorized.GET("/users",
 			middleware.RequirePerm("user:list"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), userCtrl.List)
 		authorized.GET("/users/export",

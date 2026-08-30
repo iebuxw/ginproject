@@ -22,10 +22,10 @@ func NewUserController(userService *service.UserService) *UserController {
 	return &UserController{userService}
 }
 
-// List 获取用户分页列表
-// @Summary 获取用户分页列表
-// @Description 分页查询用户列表，支持关键词搜索
-// @Tags 用户管理
+// List 获取管理员分页列表
+// @Summary 获取管理员分页列表
+// @Description 分页查询管理员列表，支持关键词搜索
+// @Tags 管理员管理
 // @Security BearerAuth
 // @Produce json
 // @Param page query int false "页码" default(1)
@@ -45,10 +45,10 @@ func (ctl *UserController) List(c *gin.Context) {
 	utils.Success(c, gin.H{"list": users, "total": total})
 }
 
-// Get 获取用户详情
-// @Summary 获取用户详情
-// @Description 根据 ID 查询用户详情
-// @Tags 用户管理
+// Get 获取管理员详情
+// @Summary 获取管理员详情
+// @Description 根据 ID 查询管理员详情
+// @Tags 管理员管理
 // @Security BearerAuth
 // @Produce json
 // @Param id path int true "用户 ID"
@@ -65,10 +65,10 @@ func (ctl *UserController) Get(c *gin.Context) {
 	utils.Success(c, user)
 }
 
-// Create 新建用户
-// @Summary 新建用户
-// @Description 创建新用户并分配角色
-// @Tags 用户管理
+// Create 新建管理员
+// @Summary 新建管理员
+// @Description 创建新管理员并分配角色
+// @Tags 管理员管理
 // @Security BearerAuth
 // @Accept json
 // @Produce json
@@ -98,10 +98,10 @@ func (ctl *UserController) Create(c *gin.Context) {
 	utils.Success(c, nil)
 }
 
-// Update 编辑用户
-// @Summary 编辑用户
-// @Description 更新用户信息，密码为空时不覆盖
-// @Tags 用户管理
+// Update 编辑管理员
+// @Summary 编辑管理员
+// @Description 更新管理员信息，密码为空时不覆盖
+// @Tags 管理员管理
 // @Security BearerAuth
 // @Accept json
 // @Produce json
@@ -134,10 +134,10 @@ func (ctl *UserController) Update(c *gin.Context) {
 	utils.Success(c, nil)
 }
 
-// Delete 删除用户
-// @Summary 删除用户
-// @Description 根据 ID 删除用户
-// @Tags 用户管理
+// Delete 删除管理员
+// @Summary 删除管理员
+// @Description 根据 ID 删除管理员
+// @Tags 管理员管理
 // @Security BearerAuth
 // @Produce json
 // @Param id path int true "用户 ID"
@@ -152,10 +152,10 @@ func (ctl *UserController) Delete(c *gin.Context) {
 	utils.Success(c, nil)
 }
 
-// Export 导出用户列表为 Excel
-// @Summary 导出用户列表
-// @Description 同步导出用户数据为 Excel 文件
-// @Tags 用户管理
+// Export 导出管理员列表为 Excel
+// @Summary 导出管理员列表
+// @Description 同步导出管理员数据为 Excel 文件
+// @Tags 管理员管理
 // @Security BearerAuth
 // @Produce application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
 // @Param keyword query string false "搜索关键词（用户名/邮箱）"
@@ -167,7 +167,7 @@ func (ctl *UserController) Export(c *gin.Context) {
 	f := excelize.NewFile()
 	defer f.Close()
 
-	sheet := "用户列表"
+	sheet := "管理员列表"
 	f.SetSheetName("Sheet1", sheet)
 
 	sw, _ := f.NewStreamWriter(sheet)
@@ -224,7 +224,7 @@ func (ctl *UserController) Export(c *gin.Context) {
 	})
 	f.SetCellStyle(sheet, "A1", "H1", headerStyle)
 
-	filename := fmt.Sprintf("用户列表_%s.xlsx", time.Now().Format("20060102_150405"))
+	filename := fmt.Sprintf("管理员列表_%s.xlsx", time.Now().Format("20060102_150405"))
 	c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename*=UTF-8''%s", url.PathEscape(filename)))
 
@@ -233,10 +233,10 @@ func (ctl *UserController) Export(c *gin.Context) {
 	}
 }
 
-// Import 导入用户
-// @Summary Excel 批量导入用户
-// @Description 上传 xlsx 文件批量创建用户；用户名已存在的行跳过，校验失败的行返回原因
-// @Tags 用户管理
+// Import 导入管理员
+// @Summary Excel 批量导入管理员
+// @Description 上传 xlsx 文件批量创建管理员；用户名已存在的行跳过，校验失败的行返回原因
+// @Tags 管理员管理
 // @Security BearerAuth
 // @Accept multipart/form-data
 // @Produce json
@@ -329,10 +329,10 @@ func (ctl *UserController) Import(c *gin.Context) {
 	utils.Success(c, result)
 }
 
-// ImportTemplate 下载用户导入模板
-// @Summary 下载用户导入模板
+// ImportTemplate 下载管理员导入模板
+// @Summary 下载管理员导入模板
 // @Description 生成仅含表头的 xlsx 模板（用户名/密码/邮箱/手机号/描述/状态/角色）
-// @Tags 用户管理
+// @Tags 管理员管理
 // @Security BearerAuth
 // @Produce application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
 // @Success 200 {file} binary "Excel 模板"
@@ -341,7 +341,7 @@ func (ctl *UserController) ImportTemplate(c *gin.Context) {
 	f := excelize.NewFile()
 	defer f.Close()
 
-	sheet := "用户导入模板"
+	sheet := "管理员导入模板"
 	f.SetSheetName("Sheet1", sheet)
 
 	sw, _ := f.NewStreamWriter(sheet)
@@ -355,7 +355,7 @@ func (ctl *UserController) ImportTemplate(c *gin.Context) {
 	f.SetCellStyle(sheet, "A1", "G1", headerStyle)
 
 	c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-	c.Header("Content-Disposition", "attachment; filename*=UTF-8''"+url.PathEscape("用户导入模板.xlsx"))
+	c.Header("Content-Disposition", "attachment; filename*=UTF-8''"+url.PathEscape("管理员导入模板.xlsx"))
 
 	if _, err := f.WriteTo(c.Writer); err != nil {
 		utils.ErrorWithStatus(c, http.StatusInternalServerError, 500, "模板生成失败")

@@ -2,11 +2,11 @@
   <div>
     <el-card>
       <div slot="header" class="clearfix">
-        <span>用户管理</span>
+        <span>管理员管理</span>
         <div style="float:right">
-          <el-button size="small" @click="importDialogVisible = true">导入用户</el-button>
+          <el-button size="small" @click="importDialogVisible = true">导入管理员</el-button>
           <el-button size="small" :loading="exporting" @click="exportExcel">{{ exporting ? '导出中...' : '导出Excel' }}</el-button>
-          <el-button type="primary" size="small" @click="openDialog()">新增用户</el-button>
+          <el-button type="primary" size="small" @click="openDialog()">新增管理员</el-button>
         </div>
       </div>
       <el-form :inline="true">
@@ -48,7 +48,7 @@
       <el-pagination style="margin-top:15px" @current-change="pageChange" :current-page="page" :page-size="pageSize" :total="total" layout="total,prev,pager,next"></el-pagination>
     </el-card>
 
-    <el-dialog :title="isEdit ? '编辑用户' : '新增用户'" :visible.sync="dialogVisible" width="500px">
+    <el-dialog :title="isEdit ? '编辑管理员' : '新增管理员'" :visible.sync="dialogVisible" width="500px">
       <el-form :model="form" label-width="80px">
         <el-form-item label="头像">
           <el-upload
@@ -77,7 +77,7 @@
       <span slot="footer"><el-button @click="dialogVisible = false">取消</el-button><el-button type="primary" @click="handleSubmit">确定</el-button></span>
     </el-dialog>
 
-    <el-dialog title="导入用户" :visible.sync="importDialogVisible" width="520px">
+    <el-dialog title="导入管理员" :visible.sync="importDialogVisible" width="520px">
       <el-alert type="info" :closable="false" show-icon title="请先下载模板，按模板格式填写后上传导入"
         style="margin-bottom:15px"></el-alert>
       <el-upload drag action="" :auto-upload="false" :limit="1"
@@ -161,7 +161,7 @@ export default {
       this.dialogVisible = false; this.fetchData()
     },
     async handleDelete(id) {
-      await this.$confirm('确认删除该用户?', '提示', { type: 'warning' })
+      await this.$confirm('确认删除该管理员?', '提示', { type: 'warning' })
       await deleteUser(id); this.fetchData(); this.$message.success('删除成功')
     },
     saveBlob(res, fallbackName) {
@@ -185,7 +185,7 @@ export default {
     },
     async downloadTemplate() {
       const res = await downloadImportTemplate()
-      this.saveBlob(res, '用户导入模板.xlsx')
+      this.saveBlob(res, '管理员导入模板.xlsx')
     },
     handleImportChange(file, fileList) {
       this.importFile = file.raw
@@ -212,7 +212,7 @@ export default {
       this.exporting = true
       try {
         const res = await exportUsers({ keyword: this.keyword })
-        this.saveBlob(res, '用户列表.xlsx')
+        this.saveBlob(res, '管理员列表.xlsx')
       } catch {
         this.$message.error('导出失败')
       } finally {

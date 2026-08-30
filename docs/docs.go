@@ -2441,14 +2441,14 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "分页查询用户列表，支持关键词搜索",
+                "description": "分页查询管理员列表，支持关键词搜索",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "用户管理"
+                    "管理员管理"
                 ],
-                "summary": "获取用户分页列表",
+                "summary": "获取管理员分页列表",
                 "parameters": [
                     {
                         "type": "integer",
@@ -2509,7 +2509,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "创建新用户并分配角色",
+                "description": "创建新管理员并分配角色",
                 "consumes": [
                     "application/json"
                 ],
@@ -2517,9 +2517,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "用户管理"
+                    "管理员管理"
                 ],
-                "summary": "新建用户",
+                "summary": "新建管理员",
                 "parameters": [
                     {
                         "description": "用户信息",
@@ -2602,14 +2602,14 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "同步导出用户数据为 Excel 文件",
+                "description": "同步导出管理员数据为 Excel 文件",
                 "produces": [
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 ],
                 "tags": [
-                    "用户管理"
+                    "管理员管理"
                 ],
-                "summary": "导出用户列表",
+                "summary": "导出管理员列表",
                 "parameters": [
                     {
                         "type": "string",
@@ -2635,7 +2635,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "上传 xlsx 文件批量创建用户；用户名已存在的行跳过，校验失败的行返回原因",
+                "description": "上传 xlsx 文件批量创建管理员；用户名已存在的行跳过，校验失败的行返回原因",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -2643,9 +2643,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "用户管理"
+                    "管理员管理"
                 ],
-                "summary": "Excel 批量导入用户",
+                "summary": "Excel 批量导入管理员",
                 "parameters": [
                     {
                         "type": "file",
@@ -2677,9 +2677,9 @@ const docTemplate = `{
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 ],
                 "tags": [
-                    "用户管理"
+                    "管理员管理"
                 ],
-                "summary": "下载用户导入模板",
+                "summary": "下载管理员导入模板",
                 "responses": {
                     "200": {
                         "description": "Excel 模板",
@@ -2697,14 +2697,14 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "根据 ID 查询用户详情",
+                "description": "根据 ID 查询管理员详情",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "用户管理"
+                    "管理员管理"
                 ],
-                "summary": "获取用户详情",
+                "summary": "获取管理员详情",
                 "parameters": [
                     {
                         "type": "integer",
@@ -2729,7 +2729,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "更新用户信息，密码为空时不覆盖",
+                "description": "更新管理员信息，密码为空时不覆盖",
                 "consumes": [
                     "application/json"
                 ],
@@ -2737,9 +2737,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "用户管理"
+                    "管理员管理"
                 ],
-                "summary": "编辑用户",
+                "summary": "编辑管理员",
                 "parameters": [
                     {
                         "type": "integer",
@@ -2825,14 +2825,14 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "根据 ID 删除用户",
+                "description": "根据 ID 删除管理员",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "用户管理"
+                    "管理员管理"
                 ],
-                "summary": "删除用户",
+                "summary": "删除管理员",
                 "parameters": [
                     {
                         "type": "integer",

@@ -28,7 +28,7 @@ Swagger 就是 **API 文档自动生成工具**。以前后端写完接口后要
 | 名词 | 含义 | 本项目对应 |
 |------|------|-----------|
 | **Swagger UI** | 浏览器中的 API 文档网页界面，可在线发送请求测试接口 | `http://localhost:8000/swagger/index.html` |
-| **Tags** | 接口分组标签，在 Swagger UI 上按标签折叠显示 | `认证`、`用户管理`、`角色管理`、`菜单管理`、`操作日志`、`登录日志` |
+| **Tags** | 接口分组标签，在 Swagger UI 上按标签折叠显示 | `认证`、`管理员管理`、`角色管理`、`菜单管理`、`操作日志`、`登录日志` |
 | **Parameters** | 请求参数，说明接口需要传什么数据 | `path`（URL路径参数）、`query`（查询字符串）、`body`（请求体JSON） |
 | **Response** | 响应格式定义，告诉前端返回什么 JSON 结构 | `utils.Response{data=...}` |
 | **Security** | 认证/鉴权方式 | `BearerAuth`（JWT Token） |
@@ -209,11 +209,11 @@ go install github.com/swaggo/swag/cmd/swag@latest
 | 认证 | /auth/logout | POST | 用户登出 |
 | 认证 | /auth/change-password | POST | 修改密码 |
 | 认证 | /auth/userinfo | GET | 获取当前用户信息 |
-| 用户管理 | /users | GET | 用户分页列表 |
-| 用户管理 | /users/:id | GET | 用户详情 |
-| 用户管理 | /users | POST | 新建用户 |
-| 用户管理 | /users/:id | PUT | 编辑用户 |
-| 用户管理 | /users/:id | DELETE | 删除用户 |
+| 管理员管理 | /users | GET | 管理员分页列表 |
+| 管理员管理 | /users/:id | GET | 管理员详情 |
+| 管理员管理 | /users | POST | 新建管理员 |
+| 管理员管理 | /users/:id | PUT | 编辑管理员 |
+| 管理员管理 | /users/:id | DELETE | 删除管理员 |
 | 角色管理 | /roles | GET | 角色分页列表 |
 | 角色管理 | /roles/:id | GET | 角色详情 |
 | 角色管理 | /roles | POST | 新建角色 |

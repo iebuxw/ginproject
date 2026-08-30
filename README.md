@@ -103,7 +103,7 @@ docker compose up -d                   # 启动全部
 | 模块 | 说明 | 前端页面 | 权限点 |
 |---|---|---|---|
 | 仪表盘 | CPU/内存/磁盘/Go 运行时信息 | /dashboard（登录默认页） | - |
-| 用户管理 | 用户 CRUD | /system/user | user:* |
+| 管理员管理 | 管理员 CRUD | /system/user | user:* |
 | 角色管理 | 角色 CRUD 与菜单授权 | /system/role | role:* |
 | 菜单管理 | 菜单/权限点维护，前端路由由菜单树动态生成 | /system/menu | menu:* |
 | 数据字典 | 字典类型+字典项（下拉框配置） | /system/dict-type | dict:* |

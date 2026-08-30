@@ -62,7 +62,7 @@ func (d *UserDAO) FindBatch(keyword string, offset, limit int) ([]model.User, er
 	if keyword != "" {
 		q = q.Where("username LIKE ? OR email LIKE ?", "%"+keyword+"%", "%"+keyword+"%")
 	}
-	err := q.Preload("Roles").Offset(offset).Limit(limit).Order("id DESC").Find(&users).Error
+	err := q.Preload("Roles").Offset(offset).Limit(limit).Order("id ASC").Find(&users).Error
 	return users, err
 }
 
@@ -74,7 +74,7 @@ func (d *UserDAO) FindPage(page, pageSize int, keyword string) ([]model.User, in
 		q = q.Where("username LIKE ? OR email LIKE ?", "%"+keyword+"%", "%"+keyword+"%")
 	}
 	q.Count(&total)
-	err := q.Preload("Roles").Offset((page - 1) * pageSize).Limit(pageSize).Order("id DESC").Find(&users).Error
+	err := q.Preload("Roles").Offset((page - 1) * pageSize).Limit(pageSize).Order("id ASC").Find(&users).Error
 	return users, total, err
 }
 

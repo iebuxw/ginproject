@@ -40,7 +40,7 @@ type LoginRequest struct {
 
 // Login 用户登录
 // @Summary 用户登录
-// @Description 使用用户名和密码登录，返回 JWT Token
+// @Description 使用用户名和密码登录，返回 JWT Token。连续失败达到阈值后账号临时锁定，到期自动解锁
 // @Tags 认证
 // @Accept json
 // @Produce json

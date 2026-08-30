@@ -90,7 +90,7 @@ const docTemplate = `{
         },
         "/auth/login": {
             "post": {
-                "description": "使用用户名和密码登录，返回 JWT Token",
+                "description": "使用用户名和密码登录，返回 JWT Token。连续失败达到阈值后账号临时锁定，到期自动解锁",
                 "consumes": [
                     "application/json"
                 ],
@@ -140,6 +140,53 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "成功",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/profile": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "更新当前用户的邮箱等个人信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "认证"
+                ],
+                "summary": "更新个人信息",
+                "parameters": [
+                    {
+                        "description": "个人信息",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    {
+                        "description": "邮箱",
+                        "name": "body.body.email",
+                        "in": "body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "业务错误",
                         "schema": {
                             "$ref": "#/definitions/utils.Response"
                         }
@@ -1212,8 +1259,8 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "default": 0,
-                        "description": "状态筛选 1=成功 0=失败",
+                        "default": -1,
+                        "description": "状态筛选 1=成功 0=失败 -1=不筛选",
                         "name": "status",
                         "in": "query"
                     }
@@ -2207,6 +2254,39 @@ const docTemplate = `{
                 }
             }
         },
+        "/roles/export": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "同步导出角色数据为 Excel 文件",
+                "produces": [
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                ],
+                "tags": [
+                    "角色管理"
+                ],
+                "summary": "导出角色列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "搜索关键词（角色名/标识）",
+                        "name": "keyword",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Excel 文件",
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                }
+            }
+        },
         "/roles/{id}": {
             "get": {
                 "security": [
@@ -2875,6 +2955,10 @@ const docTemplate = `{
                 },
                 "sender_id": {
                     "type": "integer"
+                },
+                "sender_name": {
+                    "description": "发布人用户名；系统事件（sender_id=0）为空",
+                    "type": "string"
                 },
                 "title": {
                     "type": "string"

@@ -67,6 +67,9 @@ func loginFailKey(username string) string {
 
 // isLocked 失败计数已达阈值即锁定；Redis 异常时放行（降级不阻断登录）
 func (s *AuthService) isLocked(username string) (bool, int) {
+	if s.cfg.LoginLock.MaxAttempts <= 0 {
+		return false, 0
+	}
 	val, err := s.rdb.Get(context.Background(), loginFailKey(username)).Int()
 	if err != nil {
 		return false, 0
@@ -84,6 +87,9 @@ func (s *AuthService) isLocked(username string) (bool, int) {
 
 // recordFailure 记一次失败：首次失败设累计窗口，达阈值刷新 TTL 为完整锁定时长
 func (s *AuthService) recordFailure(username string) {
+	if s.cfg.LoginLock.MaxAttempts <= 0 || s.cfg.LoginLock.DurationMinutes <= 0 {
+		return
+	}
 	key := loginFailKey(username)
 	ctx := context.Background()
 	val, err := s.rdb.Incr(ctx, key).Result()

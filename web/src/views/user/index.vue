@@ -17,8 +17,8 @@
           <el-button @click="fetchData">查询</el-button>
         </el-form-item>
       </el-form>
-      <el-table :data="list" border>
-        <el-table-column prop="id" label="ID" width="60"></el-table-column>
+      <el-table :data="list" border @sort-change="handleSortChange">
+        <el-table-column prop="id" label="ID" width="80" sortable="custom"></el-table-column>
         <el-table-column label="头像" width="80">
           <template slot-scope="s">
             <el-avatar :size="36" :src="s.row.avatar">{{ (s.row.username || '').charAt(0) }}</el-avatar>
@@ -112,7 +112,7 @@ import { getRoles } from '@/api/role'
 export default {
   data() {
     return {
-      list: [], page: 1, pageSize: 10, total: 0, keyword: '', exporting: false,
+      list: [], page: 1, pageSize: 10, total: 0, keyword: '', exporting: false, orderBy: 'id', order: 'asc',
       dialogVisible: false, isEdit: false,
       form: { username: '', password: '', email: '', phone: '', description: '', avatar: '', status: 1, role_ids: [] },
       allRoles: [],
@@ -137,8 +137,15 @@ export default {
       return isImage && isLt2M
     },
     async fetchData() {
-      const res = await getUsers({ page: this.page, page_size: this.pageSize, keyword: this.keyword })
+      const res = await getUsers({ page: this.page, page_size: this.pageSize, keyword: this.keyword, order_by: this.orderBy, order: this.order })
       this.list = res.data.list; this.total = res.data.total
+    },
+    handleSortChange({ prop, order }) {
+      if (order === 'ascending') { this.orderBy = prop || 'id'; this.order = 'asc' }
+      else if (order === 'descending') { this.orderBy = prop || 'id'; this.order = 'desc' }
+      else { this.orderBy = 'id'; this.order = 'asc' }
+      this.page = 1
+      this.fetchData()
     },
     async fetchRoles() {
       const res = await getRoles({ page_size: 100 })

@@ -55,8 +55,8 @@ func (s *UserService) FindBatch(keyword string, offset, limit int) ([]model.User
 	return s.userDAO.FindBatch(keyword, offset, limit)
 }
 
-func (s *UserService) FindPage(page, pageSize int, keyword string) ([]model.User, int64, error) {
-	return s.userDAO.FindPage(page, pageSize, keyword)
+func (s *UserService) FindPage(page, pageSize int, keyword string, orderBy string) ([]model.User, int64, error) {
+	return s.userDAO.FindPage(page, pageSize, keyword, orderBy)
 }
 
 // ImportRow 导入文件中的一行原始数据（Excel 行号从 2 开始，含表头行）

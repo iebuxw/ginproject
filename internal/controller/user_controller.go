@@ -22,22 +22,38 @@ func NewUserController(userService *service.UserService) *UserController {
 	return &UserController{userService}
 }
 
+// allowedOrderFields 用户列表允许排序的字段
+var allowedOrderFields = map[string]bool{"id": true, "username": true, "email": true, "created_at": true}
+
 // List 获取管理员分页列表
 // @Summary 获取管理员分页列表
-// @Description 分页查询管理员列表，支持关键词搜索
+// @Description 分页查询管理员列表，支持关键词搜索和排序
 // @Tags 管理员管理
 // @Security BearerAuth
 // @Produce json
 // @Param page query int false "页码" default(1)
 // @Param page_size query int false "每页数量" default(10)
 // @Param keyword query string false "搜索关键词（用户名/邮箱）"
+// @Param order_by query string false "排序字段（id/username/email/created_at）" default(id)
+// @Param order query string false "排序方向（asc/desc）" default(asc)
 // @Success 200 {object} utils.Response{data=object{list=[]model.User,total=int}} "成功"
 // @Router /users [get]
 func (ctl *UserController) List(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
 	keyword := c.Query("keyword")
-	users, total, err := ctl.userService.FindPage(page, pageSize, keyword)
+
+	orderByField := c.DefaultQuery("order_by", "id")
+	orderDir := strings.ToLower(c.DefaultQuery("order", "asc"))
+	if !allowedOrderFields[orderByField] {
+		orderByField = "id"
+	}
+	if orderDir != "asc" && orderDir != "desc" {
+		orderDir = "asc"
+	}
+	orderBy := orderByField + " " + orderDir
+
+	users, total, err := ctl.userService.FindPage(page, pageSize, keyword, orderBy)
 	if err != nil {
 		utils.Error(c, 500, err.Error())
 		return

@@ -87,7 +87,7 @@ LOGIN_LOCK_DURATION=15
 
 - [ ] **Step 3: 编译验证**
 
-Run: `go build ./...`
+Run: `go build ./... && go vet ./...`
 Expected: 无输出（编译通过）
 
 - [ ] **Step 4: Commit**
@@ -201,7 +201,7 @@ func (s *AuthService) clearFailures(username string) {
 
 - [ ] **Step 4: 编译验证**
 
-Run: `go build ./...`
+Run: `go build ./... && go vet ./...`
 Expected: 无输出
 
 - [ ] **Step 5: Commit**
@@ -243,7 +243,7 @@ git commit -m "feat: 登录连续失败达阈值后临时锁定账号（Redis �
 
 - [ ] **Step 2: 编译验证**
 
-Run: `go build ./...`
+Run: `go build ./... && go vet ./...`
 Expected: 无输出
 
 - [ ] **Step 3: Commit**

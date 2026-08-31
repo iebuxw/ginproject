@@ -39,6 +39,7 @@ func Setup(
 	healthCtrl *controller.HealthController,
 	settingCtrl *controller.SystemSettingController,
 	notificationCtrl *controller.NotificationController,
+	logSettingCtrl *controller.LogSettingController,
 ) *gin.Engine {
 	r := gin.Default()
 	r.Use(middleware.CORS())
@@ -200,6 +201,12 @@ func Setup(
 		// 系统配置（读取已移到公开路由；写入需认证+权限）
 		authorized.PUT("/settings",
 			middleware.RequirePerm("setting:save"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), settingCtrl.Update)
+
+		// 日志设置
+		authorized.GET("/log-settings",
+			middleware.RequirePerm("log:setting"), middleware.RBAC(menuDAO), logSettingCtrl.Get)
+		authorized.PUT("/log-settings",
+			middleware.RequirePerm("log:setting"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), logSettingCtrl.Update)
 
 		// 消息中心
 		authorized.POST("/notifications",

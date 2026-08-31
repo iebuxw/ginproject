@@ -196,9 +196,10 @@ func main() {
 	fileCtrl := controller.NewFileController(fileService)
 	settingCtrl := controller.NewSystemSettingController(systemSettingService)
 	notificationCtrl := controller.NewNotificationController(notificationService)
+	logSettingCtrl := controller.NewLogSettingController(systemSettingService)
 
 	// Router
-	r := router.Setup(cfg, authCtrl, userCtrl, roleCtrl, menuCtrl, logCtrl, loginLogCtrl, wsCtrl, uploadCtrl, authService, userDAO, menuDAO, logDAO, logRepo, dictTypeCtrl, dictDataCtrl, cronTaskCtrl, dbBackupCtrl, fileCtrl, dashboardCtrl, healthCtrl, settingCtrl, notificationCtrl)
+	r := router.Setup(cfg, authCtrl, userCtrl, roleCtrl, menuCtrl, logCtrl, loginLogCtrl, wsCtrl, uploadCtrl, authService, userDAO, menuDAO, logDAO, logRepo, dictTypeCtrl, dictDataCtrl, cronTaskCtrl, dbBackupCtrl, fileCtrl, dashboardCtrl, healthCtrl, settingCtrl, notificationCtrl, logSettingCtrl)
 
 	log.Printf("Server running on :%s", cfg.Server.Port)
 	if err := r.Run(":" + cfg.Server.Port); err != nil {

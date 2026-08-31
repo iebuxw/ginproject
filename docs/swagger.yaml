@@ -12,6 +12,16 @@ definitions:
     - password
     - username
     type: object
+  controller.healthResponse:
+    properties:
+      services:
+        additionalProperties:
+          $ref: '#/definitions/controller.serviceStatus'
+        type: object
+      status:
+        example: ok
+        type: string
+    type: object
   controller.serverInfoResponse:
     properties:
       cpu:
@@ -54,6 +64,15 @@ definitions:
           uptime:
             type: integer
         type: object
+    type: object
+  controller.serviceStatus:
+    properties:
+      message:
+        example: ""
+        type: string
+      status:
+        example: ok
+        type: string
     type: object
   dao.NotificationItem:
     properties:
@@ -341,6 +360,33 @@ paths:
       summary: 获取服务器信息
       tags:
       - dashboard
+  /api/health:
+    get:
+      description: 检查 MySQL、Redis、Elasticsearch、RabbitMQ 连通性，全部正常返回 200，任一异常返回 503
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/controller.healthResponse'
+              type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/controller.healthResponse'
+              type: object
+      summary: 健康检查
+      tags:
+      - health
   /auth/change-password:
     post:
       consumes:
@@ -1799,7 +1845,7 @@ paths:
       - 角色管理
   /users:
     get:
-      description: 分页查询管理员列表，支持关键词搜索
+      description: 分页查询管理员列表，支持关键词搜索和排序
       parameters:
       - default: 1
         description: 页码
@@ -1814,6 +1860,16 @@ paths:
       - description: 搜索关键词（用户名/邮箱）
         in: query
         name: keyword
+        type: string
+      - default: id
+        description: 排序字段（id/username/email/created_at）
+        in: query
+        name: order_by
+        type: string
+      - default: asc
+        description: 排序方向（asc/desc）
+        in: query
+        name: order
         type: string
       produces:
       - application/json

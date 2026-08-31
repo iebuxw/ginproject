@@ -49,6 +49,56 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/health": {
+            "get": {
+                "description": "检查 MySQL、Redis、Elasticsearch、RabbitMQ 连通性，全部正常返回 200，任一异常返回 503",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "健康检查",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/controller.healthResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/controller.healthResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/auth/change-password": {
             "post": {
                 "security": [
@@ -2441,7 +2491,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "分页查询管理员列表，支持关键词搜索",
+                "description": "分页查询管理员列表，支持关键词搜索和排序",
                 "produces": [
                     "application/json"
                 ],
@@ -2468,6 +2518,20 @@ const docTemplate = `{
                         "type": "string",
                         "description": "搜索关键词（用户名/邮箱）",
                         "name": "keyword",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "id",
+                        "description": "排序字段（id/username/email/created_at）",
+                        "name": "order_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "asc",
+                        "description": "排序方向（asc/desc）",
+                        "name": "order",
                         "in": "query"
                     }
                 ],
@@ -2871,6 +2935,21 @@ const docTemplate = `{
                 }
             }
         },
+        "controller.healthResponse": {
+            "type": "object",
+            "properties": {
+                "services": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/controller.serviceStatus"
+                    }
+                },
+                "status": {
+                    "type": "string",
+                    "example": "ok"
+                }
+            }
+        },
         "controller.serverInfoResponse": {
             "type": "object",
             "properties": {
@@ -2935,6 +3014,19 @@ const docTemplate = `{
                             "type": "integer"
                         }
                     }
+                }
+            }
+        },
+        "controller.serviceStatus": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "example": ""
+                },
+                "status": {
+                    "type": "string",
+                    "example": "ok"
                 }
             }
         },

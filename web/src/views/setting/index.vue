@@ -2,7 +2,7 @@
   <div>
     <el-card>
       <div slot="header"><span>系统配置</span></div>
-      <el-form ref="form" :model="form" label-width="80px" style="max-width:500px" v-loading="loading">
+      <el-form ref="form" :model="form" label-width="100px" style="max-width:520px" v-loading="loading">
         <el-form-item label="站点名称" prop="site_name" :rules="[{ required: true, message: '请输入站点名称', trigger: 'blur' }]">
           <el-input v-model="form.site_name" maxlength="50" show-word-limit placeholder="请输入站点名称"></el-input>
         </el-form-item>

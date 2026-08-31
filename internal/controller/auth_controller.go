@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"ginproject/internal/dao"
 	"ginproject/internal/model"
 	"ginproject/internal/service"
@@ -23,10 +24,11 @@ type AuthController struct {
 	loginLogService *service.LoginLogService
 	rdb             *redis.Client
 	publishCh       *amqp091.Channel
+	settingService  *service.SystemSettingService
 }
 
-func NewAuthController(authService *service.AuthService, menuDAO *dao.MenuDAO, userDAO *dao.UserDAO, loginLogService *service.LoginLogService, rdb *redis.Client, publishCh *amqp091.Channel) *AuthController {
-	return &AuthController{authService, menuDAO, userDAO, loginLogService, rdb, publishCh}
+func NewAuthController(authService *service.AuthService, menuDAO *dao.MenuDAO, userDAO *dao.UserDAO, loginLogService *service.LoginLogService, rdb *redis.Client, publishCh *amqp091.Channel, settingService *service.SystemSettingService) *AuthController {
+	return &AuthController{authService, menuDAO, userDAO, loginLogService, rdb, publishCh, settingService}
 }
 
 // alertMailLimitTTL 同一 IP 的登录告警邮件限频窗口
@@ -34,8 +36,10 @@ const alertMailLimitTTL = 5 * time.Minute
 
 // LoginRequest 登录请求参数
 type LoginRequest struct {
-	Username string `json:"username" binding:"required" example:"admin"`
-	Password string `json:"password" binding:"required" example:"123456"`
+	Username    string `json:"username" binding:"required" example:"admin"`
+	Password    string `json:"password" binding:"required" example:"123456"`
+	CaptchaID   string `json:"captcha_id"`
+	CaptchaCode string `json:"captcha_code"`
 }
 
 // Login 用户登录
@@ -54,6 +58,13 @@ func (ctl *AuthController) Login(c *gin.Context) {
 		utils.Error(c, 400, "参数错误")
 		return
 	}
+
+	// 验证码校验（根据系统设置决定是否启用）
+	if err := ctl.checkCaptcha(req.CaptchaID, req.CaptchaCode); err != nil {
+		utils.Error(c, 400, err.Error())
+		return
+	}
+
 	token, user, err := ctl.authService.Login(req.Username, req.Password)
 	if err != nil {
 		_ = ctl.loginLogService.Create(&model.LoginLog{
@@ -70,6 +81,37 @@ func (ctl *AuthController) Login(c *gin.Context) {
 		Username: req.Username, Status: 1, IP: c.ClientIP(), CreatedAt: model.DateTime(time.Now()),
 	})
 	utils.Success(c, gin.H{"token": token, "user": user})
+}
+
+// checkCaptcha 校验验证码；未启用时跳过；Redis 不可用时降级放行
+func (ctl *AuthController) checkCaptcha(captchaID, captchaCode string) error {
+	settings, err := ctl.settingService.GetAll()
+	if err != nil {
+		log.Printf("读取系统设置失败: %v", err)
+		return nil // 降级放行
+	}
+	if settings["captcha_enabled"] != "1" {
+		return nil
+	}
+
+	if captchaID == "" || captchaCode == "" {
+		return fmt.Errorf("请输入验证码")
+	}
+
+	key := "captcha:" + captchaID
+	ctx := context.Background()
+	stored, err := ctl.rdb.Get(ctx, key).Result()
+	if err != nil {
+		log.Printf("验证码读取失败（可能已过期）: %v", err)
+		return fmt.Errorf("验证码已过期，请重新获取")
+	}
+	// 一次性消耗
+	ctl.rdb.Del(ctx, key)
+
+	if stored != captchaCode {
+		return fmt.Errorf("验证码错误")
+	}
+	return nil
 }
 
 // publishLoginAlert 发布登录告警邮件任务到队列；同一 IP 限频窗口内只发一封，发布失败不影响登录

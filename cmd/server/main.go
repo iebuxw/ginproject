@@ -38,7 +38,7 @@ func main() {
 	cfg := config.Load()
 
 	// MySQL
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&collation=utf8mb4_unicode_ci&parseTime=True&loc=Local",
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		cfg.Database.User, cfg.Database.Password,
 		cfg.Database.Host, cfg.Database.Port, cfg.Database.DBName)
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})

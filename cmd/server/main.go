@@ -10,6 +10,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"ginproject/internal/config"
 	"ginproject/internal/controller"
@@ -21,6 +22,8 @@ import (
 	"ginproject/internal/worker"
 	"ginproject/internal/ws"
 	"log"
+	"strconv"
+	"strings"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mysql"
@@ -124,22 +127,52 @@ func main() {
 
 	// 定时任务调度器（内置命令进程内执行，注入真实清理实现）
 	scheduler.Commands["clean_logs"] = scheduler.CommandDef{
-		Name:   "clean_logs",
-		Label:  "清理过期日志",
+		Name:  "clean_logs",
+		Label: "清理过期日志",
 		Handler: func(days int) (scheduler.CommandResult, error) {
+			// 1. 保留天数：入参无效时读取配置，再无效 fallback 30
 			if days < 1 || days > 3650 {
-				days = 30
+				cfg, _ := systemSettingService.GetAll()
+				if v, ok := cfg["log_cleanup_days"]; ok {
+					if n, err := strconv.Atoi(v); err == nil && n >= 1 && n <= 3650 {
+						days = n
+					}
+				}
+				if days < 1 || days > 3650 {
+					days = 30
+				}
 			}
-			opN, err := logService.Cleanup(days)
-			if err != nil {
-				return scheduler.CommandResult{}, err
+
+			// 2. 清理范围：读取配置，默认全部
+			scope := []string{"operation", "login"}
+			cfg, _ := systemSettingService.GetAll()
+			if v, ok := cfg["log_cleanup_scope"]; ok && v != "" {
+				var parsed []string
+				if json.Unmarshal([]byte(v), &parsed) == nil && len(parsed) > 0 {
+					scope = parsed
+				}
 			}
-			loginN, err := loginLogService.Cleanup(days)
-			if err != nil {
-				return scheduler.CommandResult{}, err
+
+			// 3. 按 scope 执行清理
+			var msgs []string
+			for _, s := range scope {
+				switch s {
+				case "operation":
+					n, err := logService.Cleanup(days)
+					if err != nil {
+						return scheduler.CommandResult{}, err
+					}
+					msgs = append(msgs, fmt.Sprintf("操作日志 %d 条", n))
+				case "login":
+					n, err := loginLogService.Cleanup(days)
+					if err != nil {
+						return scheduler.CommandResult{}, err
+					}
+					msgs = append(msgs, fmt.Sprintf("登录日志 %d 条", n))
+				}
 			}
 			return scheduler.CommandResult{
-				Message: fmt.Sprintf("清理完成：操作日志 %d 条，登录日志 %d 条", opN, loginN),
+				Message: "清理完成：" + strings.Join(msgs, "，"),
 			}, nil
 		},
 	}

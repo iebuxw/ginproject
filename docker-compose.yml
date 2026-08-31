@@ -69,6 +69,12 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   elasticsearch:
     build:
@@ -114,7 +120,8 @@ services:
     volumes:
       - ./certs:/etc/nginx/certs:ro
     depends_on:
-      - go-app
+      go-app:
+        condition: service_healthy
 
 volumes:
   mysql-data:

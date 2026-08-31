@@ -191,13 +191,14 @@ func main() {
 	cronTaskCtrl := controller.NewCronTaskController(cronTaskService)
 	dbBackupCtrl := controller.NewDbBackupController(dbBackupService)
 	dashboardCtrl := controller.NewDashboardController()
+	healthCtrl := controller.NewHealthController(db, rdb, esClient, amqpConn)
 	uploadCtrl := controller.NewUploadController(userDAO)
 	fileCtrl := controller.NewFileController(fileService)
 	settingCtrl := controller.NewSystemSettingController(systemSettingService)
 	notificationCtrl := controller.NewNotificationController(notificationService)
 
 	// Router
-	r := router.Setup(cfg, authCtrl, userCtrl, roleCtrl, menuCtrl, logCtrl, loginLogCtrl, wsCtrl, uploadCtrl, authService, userDAO, menuDAO, logDAO, logRepo, dictTypeCtrl, dictDataCtrl, cronTaskCtrl, dbBackupCtrl, fileCtrl, dashboardCtrl, settingCtrl, notificationCtrl)
+	r := router.Setup(cfg, authCtrl, userCtrl, roleCtrl, menuCtrl, logCtrl, loginLogCtrl, wsCtrl, uploadCtrl, authService, userDAO, menuDAO, logDAO, logRepo, dictTypeCtrl, dictDataCtrl, cronTaskCtrl, dbBackupCtrl, fileCtrl, dashboardCtrl, healthCtrl, settingCtrl, notificationCtrl)
 
 	log.Printf("Server running on :%s", cfg.Server.Port)
 	if err := r.Run(":" + cfg.Server.Port); err != nil {

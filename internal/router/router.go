@@ -36,6 +36,7 @@ func Setup(
 	dbBackupCtrl *controller.DbBackupController,
 	fileCtrl *controller.FileController,
 	dashboardCtrl *controller.DashboardController,
+	healthCtrl *controller.HealthController,
 	settingCtrl *controller.SystemSettingController,
 	notificationCtrl *controller.NotificationController,
 ) *gin.Engine {
@@ -48,6 +49,7 @@ func Setup(
 	api := r.Group("/api")
 
 	// 公开路由
+	api.GET("/health", healthCtrl.Check)
 	api.POST("/auth/login", authCtrl.Login)
 	api.GET("/settings", settingCtrl.Get)
 

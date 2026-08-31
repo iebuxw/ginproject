@@ -4,6 +4,7 @@ import (
 	"errors"
 	"ginproject/internal/dao"
 	"ginproject/internal/model"
+	"time"
 )
 
 type DictTypeService struct {
@@ -15,9 +16,17 @@ func NewDictTypeService(d *dao.DictTypeDAO, dd *dao.DictDataDAO) *DictTypeServic
 	return &DictTypeService{dictTypeDAO: d, dictDataDAO: dd}
 }
 
-func (s *DictTypeService) Create(dt *model.DictType) error { return s.dictTypeDAO.Create(dt) }
+func (s *DictTypeService) Create(dt *model.DictType) error {
+	now := model.DateTime(time.Now())
+	dt.CreatedAt = now
+	dt.UpdatedAt = now
+	return s.dictTypeDAO.Create(dt)
+}
 
-func (s *DictTypeService) Update(dt *model.DictType) error { return s.dictTypeDAO.Update(dt) }
+func (s *DictTypeService) Update(dt *model.DictType) error {
+	dt.UpdatedAt = model.DateTime(time.Now())
+	return s.dictTypeDAO.Update(dt)
+}
 
 func (s *DictTypeService) Delete(id uint) error {
 	has, err := s.dictDataDAO.HasData(id)
@@ -50,9 +59,17 @@ func NewDictDataService(d *dao.DictDataDAO) *DictDataService {
 	return &DictDataService{dictDataDAO: d}
 }
 
-func (s *DictDataService) Create(dd *model.DictData) error { return s.dictDataDAO.Create(dd) }
+func (s *DictDataService) Create(dd *model.DictData) error {
+	now := model.DateTime(time.Now())
+	dd.CreatedAt = now
+	dd.UpdatedAt = now
+	return s.dictDataDAO.Create(dd)
+}
 
-func (s *DictDataService) Update(dd *model.DictData) error { return s.dictDataDAO.Update(dd) }
+func (s *DictDataService) Update(dd *model.DictData) error {
+	dd.UpdatedAt = model.DateTime(time.Now())
+	return s.dictDataDAO.Update(dd)
+}
 
 func (s *DictDataService) Delete(id uint) error { return s.dictDataDAO.Delete(id) }
 

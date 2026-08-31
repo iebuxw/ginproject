@@ -35,6 +35,16 @@
             ></el-button>
           </div>
         </el-form-item>
+        <el-form-item label="登录验证码">
+          <el-switch
+            v-model="form.captcha_enabled"
+            active-value="1"
+            inactive-value="0"
+            active-text="启用"
+            inactive-text="禁用"
+          ></el-switch>
+          <div style="color:#999;font-size:12px;margin-top:4px">启用后登录时需要输入图片验证码</div>
+        </el-form-item>
         <el-form-item>
           <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
         </el-form-item>
@@ -51,7 +61,7 @@ import { getSettings, updateSettings } from '@/api/setting'
 export default {
   data() {
     return {
-      form: { site_name: '', site_logo: '' },
+      form: { site_name: '', site_logo: '', captcha_enabled: '0' },
       loading: false,
       saving: false
     }
@@ -73,7 +83,8 @@ export default {
         if (res.code === 200) {
           this.form = {
             site_name: res.data.site_name || '',
-            site_logo: res.data.site_logo || ''
+            site_logo: res.data.site_logo || '',
+            captcha_enabled: res.data.captcha_enabled || '0'
           }
         }
       } finally {

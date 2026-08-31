@@ -100,7 +100,7 @@ func (ctl *AuthController) checkCaptcha(captchaID, captchaCode string) error {
 
 	key := "captcha:" + captchaID
 	ctx := context.Background()
-	stored, err := ctl.rdb.Get(ctx, key).Result()
+	stored, err := ctl.rdb.Get(ctx, key).Bytes()
 	if err != nil {
 		log.Printf("验证码读取失败（可能已过期）: %v", err)
 		return fmt.Errorf("验证码已过期，请重新获取")
@@ -108,7 +108,12 @@ func (ctl *AuthController) checkCaptcha(captchaID, captchaCode string) error {
 	// 一次性消耗
 	ctl.rdb.Del(ctx, key)
 
-	if stored != captchaCode {
+	// stored 是原始字节（每字节一个数字 0-9），需转为字符串比较
+	expected := make([]byte, len(stored))
+	for i, b := range stored {
+		expected[i] = '0' + b
+	}
+	if string(expected) != captchaCode {
 		return fmt.Errorf("验证码错误")
 	}
 	return nil

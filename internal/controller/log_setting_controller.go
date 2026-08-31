@@ -2,7 +2,6 @@ package controller
 
 import (
 	"encoding/json"
-	"net/http"
 	"strconv"
 
 	"ginproject/internal/service"

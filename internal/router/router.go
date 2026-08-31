@@ -38,6 +38,7 @@ func Setup(
 	dashboardCtrl *controller.DashboardController,
 	healthCtrl *controller.HealthController,
 	settingCtrl *controller.SystemSettingController,
+	captchaCtrl *controller.CaptchaController,
 	notificationCtrl *controller.NotificationController,
 	logSettingCtrl *controller.LogSettingController,
 ) *gin.Engine {
@@ -52,6 +53,7 @@ func Setup(
 	// 公开路由
 	api.GET("/health", healthCtrl.Check)
 	api.POST("/auth/login", authCtrl.Login)
+	api.GET("/auth/captcha", captchaCtrl.Generate)
 	api.GET("/settings", settingCtrl.Get)
 
 	// 日志清理（公开：定时任务调度器无 JWT，靠 secret 参数防滥用）

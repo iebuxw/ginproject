@@ -25,6 +25,9 @@ import (
 	"strconv"
 	"strings"
 
+	captchapkg "ginproject/internal/captcha"
+	"github.com/dchest/captcha"
+
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mysql"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -212,7 +215,7 @@ func main() {
 	go taskScheduler.Start()
 
 	// Controller
-	authCtrl := controller.NewAuthController(authService, menuDAO, userDAO, loginLogService, rdb, publishCh)
+	authCtrl := controller.NewAuthController(authService, menuDAO, userDAO, loginLogService, rdb, publishCh, systemSettingService)
 	userCtrl := controller.NewUserController(userService)
 	roleCtrl := controller.NewRoleController(roleService)
 	menuCtrl := controller.NewMenuController(menuService)
@@ -228,11 +231,17 @@ func main() {
 	uploadCtrl := controller.NewUploadController(userDAO)
 	fileCtrl := controller.NewFileController(fileService)
 	settingCtrl := controller.NewSystemSettingController(systemSettingService)
+
+	// 验证码：使用 Redis 存储
+	captchaStore := captchapkg.NewRedisStore(rdb)
+	captcha.SetCustomStore(captchaStore)
+	captchaCtrl := controller.NewCaptchaController()
+
 	notificationCtrl := controller.NewNotificationController(notificationService)
 	logSettingCtrl := controller.NewLogSettingController(systemSettingService)
 
 	// Router
-	r := router.Setup(cfg, authCtrl, userCtrl, roleCtrl, menuCtrl, logCtrl, loginLogCtrl, wsCtrl, uploadCtrl, authService, userDAO, menuDAO, logDAO, logRepo, dictTypeCtrl, dictDataCtrl, cronTaskCtrl, dbBackupCtrl, fileCtrl, dashboardCtrl, healthCtrl, settingCtrl, notificationCtrl, logSettingCtrl)
+	r := router.Setup(cfg, authCtrl, userCtrl, roleCtrl, menuCtrl, logCtrl, loginLogCtrl, wsCtrl, uploadCtrl, authService, userDAO, menuDAO, logDAO, logRepo, dictTypeCtrl, dictDataCtrl, cronTaskCtrl, dbBackupCtrl, fileCtrl, dashboardCtrl, healthCtrl, settingCtrl, captchaCtrl, notificationCtrl, logSettingCtrl)
 
 	log.Printf("Server running on :%s", cfg.Server.Port)
 	if err := r.Run(":" + cfg.Server.Port); err != nil {

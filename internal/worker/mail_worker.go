@@ -2,9 +2,11 @@ package worker
 
 import (
 	"encoding/json"
-	"log"
 
+	"ginproject/internal/logger"
 	"ginproject/internal/service"
+
+	"go.uber.org/zap"
 
 	"github.com/rabbitmq/amqp091-go"
 )
@@ -47,12 +49,12 @@ func (w *MailWorker) Start() {
 	for msg := range msgs {
 		var task mailTaskMessage
 		if err := json.Unmarshal(msg.Body, &task); err != nil {
-			log.Printf("邮件任务解析失败: %v", err)
+			logger.Error("邮件任务解析失败", zap.Error(err))
 			msg.Ack(false)
 			continue
 		}
 		if err := w.alertMail.SendLoginAlert(task.Username, task.IP, task.Message); err != nil {
-			log.Printf("登录告警邮件发送失败: %v", err)
+			logger.Error("登录告警邮件发送失败", zap.Error(err))
 		}
 		msg.Ack(false)
 	}

@@ -6,11 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
-	"log"
 	"strings"
 	"time"
 
+	"ginproject/internal/logger"
 	"ginproject/internal/model"
+
+	"go.uber.org/zap"
 
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
@@ -123,7 +125,7 @@ func (r *LogRepo) Search(ctx context.Context, q SearchQuery) ([]SearchHitDoc, in
 	for _, h := range parsed.Hits.Hits {
 		var doc SearchHitDoc
 		if err := json.Unmarshal(h.Source, &doc.OperationLog); err != nil {
-			log.Printf("ES 命中解析失败: %v", err)
+			logger.Warn("ES 命中解析失败", zap.Error(err))
 			continue
 		}
 		doc.HighlightPath = sanitizeHighlight(join(h.Highlight["path"]))

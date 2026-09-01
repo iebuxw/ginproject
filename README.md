@@ -22,15 +22,65 @@ docker compose up -d       # 启动所有服务
 ```
 
 - 访问地址：https://localhost:8443（自签证书，浏览器首次访问需点"高级 → 继续访问"）
-- 访问 http://localhost:8080 会自动 301 跳转到 https://localhost:8443
+- HTTP：http://localhost:8080（不自动跳转 HTTPS）
 - 默认账号：`admin` / `123456`
+
+## 线上部署（阿里云 ECS）
+
+### 部署步骤
+
+```bash
+# 1. 克隆代码
+git clone <repo-url> && cd ginproject
+
+# 2. 创建生产 .env（不入库，需手动创建）
+cp .env.example .env
+vi .env    # 替换为生产密码（MYSQL_PASSWORD、JWT_SECRET、REDIS_PASSWORD、RABBITMQ_USER/PASSWORD 等）
+
+# 3. 替换 SSL 证书（可选，没域名先用自签证书）
+# 把真实证书放到 certs/server.crt 和 certs/server.key
+
+# 4. 启动（生产配置只暴露 80/443，内部服务无端口映射）
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+### 本地与线上区别
+
+| | 本地开发 | 线上部署 |
+|---|---|---|
+| 启动命令 | `docker compose up -d` | `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d` |
+| 端口映射 | 全开（3307/6380/8080/8443 等） | 只开 80/443 |
+| `.env` | 项目根目录已有 | 手动创建，填生产密码 |
+| 证书 | 自签 localhost 证书 | 真实域名证书（可选） |
+
+### 离线部署（服务器无法联网）
+
+服务器无法拉取镜像时，先在本地（有网环境）构建并导出：
+
+```bash
+# 本地构建
+docker compose build
+
+# 导出所有镜像
+docker save ginproject-go-app ginproject-nginx ginproject-elasticsearch mysql:5.7 redis:3.2-alpine rabbitmq:3-management kibana:7.17.15 -o images.tar
+
+# 传到服务器
+scp images.tar root@服务器IP:/root/
+```
+
+服务器上导入并启动：
+
+```bash
+docker load < images.tar
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
 
 ## HTTPS 与证书
 
-- `certs/` 目录不入库（`.gitignore` 已排除），私钥不随代码分发
-- **换机器或重新克隆后**：先运行 `./gen-cert.sh` 生成证书，再 `docker compose up -d --build nginx`
+- `certs/` 目录内为自签 localhost 证书，随代码入库，供本地开发使用
+- **线上部署**：用真实域名证书替换 `certs/server.crt` 和 `certs/server.key`，重启 nginx 即可
+- **换机器或重新克隆后**：先运行 `./gen-cert.sh` 生成自签证书，再 `docker compose up -d --build nginx`
 - 脚本幂等：`certs/server.crt` 与 `certs/server.key` 已存在时跳过，不会覆盖既有证书
-- 证书有效期 10 年（SAN: localhost / 127.0.0.1），过期后删除 `certs/` 重跑脚本即可
 
 ## 数据库连接命令
 

@@ -4,14 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"time"
 
 	"ginproject/internal/dao"
+	"ginproject/internal/logger"
 	"ginproject/internal/service"
 	"ginproject/internal/ws"
+
+	"go.uber.org/zap"
 
 	"github.com/rabbitmq/amqp091-go"
 	"github.com/redis/go-redis/v9"
@@ -99,7 +101,7 @@ func (w *ExportWorker) processTask(taskID string) {
 
 	err := w.buildExcel(filter, filePath)
 	if err != nil {
-		log.Printf("导出任务 %s 失败: %v", taskID, err)
+		logger.Error("导出任务失败", zap.String("task_id", taskID), zap.Error(err))
 		w.rdb.HSet(ctx, taskKey, "status", "failed")
 		w.rdb.HSet(ctx, taskKey, "error", err.Error())
 		w.hub.Send(uid, ws.Message{

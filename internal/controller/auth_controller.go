@@ -8,9 +8,11 @@ import (
 	"ginproject/internal/dao"
 	"ginproject/internal/model"
 	"ginproject/internal/service"
+	"ginproject/internal/logger"
 	"ginproject/internal/utils"
-	"log"
 	"time"
+
+	"go.uber.org/zap"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rabbitmq/amqp091-go"
@@ -87,7 +89,7 @@ func (ctl *AuthController) Login(c *gin.Context) {
 func (ctl *AuthController) checkCaptcha(captchaID, captchaCode string) error {
 	settings, err := ctl.settingService.GetAll()
 	if err != nil {
-		log.Printf("读取系统设置失败: %v", err)
+		logger.Warn("读取系统设置失败", zap.Error(err))
 		return nil // 降级放行
 	}
 	if settings["captcha_enabled"] != "1" {
@@ -102,7 +104,7 @@ func (ctl *AuthController) checkCaptcha(captchaID, captchaCode string) error {
 	ctx := context.Background()
 	stored, err := ctl.rdb.Get(ctx, key).Bytes()
 	if err != nil {
-		log.Printf("验证码读取失败（可能已过期）: %v", err)
+		logger.Warn("验证码读取失败（可能已过期）", zap.Error(err))
 		return fmt.Errorf("验证码已过期，请重新获取")
 	}
 	// 一次性消耗
@@ -138,7 +140,7 @@ func (ctl *AuthController) publishLoginAlert(username, ip, message string) {
 		ContentType: "application/json",
 		Body:        body,
 	}); err != nil {
-		log.Printf("登录告警任务发布失败: %v", err)
+		logger.Warn("登录告警任务发布失败", zap.Error(err))
 	}
 }
 

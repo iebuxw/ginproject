@@ -113,7 +113,7 @@ User ──N:M── Role ──N:M── Menu
 ## 注意事项
 - Redis 是 `redis:3.2-alpine`，**不支持 HSET 多字段**（4.0+ 才支持），多字段需拆成单字段调用
 - 前端是 **Vue 2 + Element UI**（不是 Vue 3）；`web/src/store/modules/permission.js` 用后端菜单树动态生成路由，**新增菜单必须在 `componentMap` 中添加路由映射**
-- 模型时间字段：需要 JSON 返回给前端的用 `DateTime`（输出 `2006-01-02 15:04:05`），不返回前端的（如 GORM 自动管理的 `UpdatedAt`）可用 `time.Time`；`DateTime` 不触发 GORM 自动时间戳，需手动赋值
+- 模型时间字段：需要 JSON 返回给前端的用 `DateTime`（输出 `2006-01-02 15:04:05`），不返回前端的（如 GORM 自动管理的）可用 `time.Time`；`DateTime` 不触发 GORM 自动时间戳，需手动赋值
 - 手动操作 MySQL 插入中文时需加 `--default-character-set=utf8mb4`，否则乱码
 
 ## 工作方式

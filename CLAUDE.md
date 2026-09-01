@@ -40,11 +40,9 @@ docker compose up -d --build  # 重新构建所有镜像
 docker compose restart redis  # 重启单个服务
 ```
 
-**访问地址：** nginx 强制把 http://localhost:8080 301 到 **https://localhost:8443**（自签证书，见 docker/nginx.conf；Vue SPA + /api 代理到 go-app:8000）
-
 **默认管理员：** `admin` / `admin`（迁移种子 000003 写入）；但 DB 中实际密码已被改为 `123456`，登录受阻先用 `123456`，**未经用户明确同意不得擅自重置密码/用户数据**。
 
-** DDL 和种子数据由 golang-migrate 管理（`migrations/` 目录，具体文件以目录现状为准），启动时自动执行。新增迁移按 `00000N_xxx` 递增创建成对 .up/.down 文件，建表用 `IF NOT EXISTS`。迁移中定位行优先用语义字段（`WHERE name = 'xxx'`），不要硬编码 id——后续迁移可能导致 id 偏移；种子数据用唯一键约束 + `INSERT IGNORE` 保证幂等；禁止使用硬编码 ID 更新 / 定位种子记录，仅极特殊插入场景才可显式指定 id **
+** DDL 和种子数据由 golang-migrate 管理（`migrations/` 目录，具体文件以目录现状为准），启动时自动执行。新增迁移按 `00000N_xxx` 递增创建成对 `.up.sql` / `.down.sql` 文件，建表用 `IF NOT EXISTS`。迁移中定位行优先用语义字段（`WHERE name = 'xxx'`），不要硬编码 id——后续迁移可能导致 id 偏移；种子数据用唯一键约束 + `INSERT IGNORE` 保证幂等；禁止使用硬编码 ID 更新 / 定位种子记录，仅极特殊插入场景才可显式指定 id **
 
 ### 本地运行须知
 
@@ -63,6 +61,7 @@ internal/
   dao/                       # GORM 数据访问
   model/                     # 结构体：User、Role、Menu等
   scheduler/                 # 定时任务调度器（robfig/cron/v3）+ 预定义命令注册表
+  logger/                    # zap 日志初始化
 ```
 
 实际还有 `es/`（Elasticsearch 客户端 + LogRepo，操作日志全文检索）、`worker/`（导出/邮件后台 worker，消费 RabbitMQ）、`ws/`（WebSocket Hub）、`utils/`（response/jwt/hash/uuid）。

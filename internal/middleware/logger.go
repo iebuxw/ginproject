@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"ginproject/internal/dao"
 	"ginproject/internal/es"
+	"ginproject/internal/logger"
 	"ginproject/internal/model"
 	"io"
-	"log"
 	"regexp"
 	"strings"
 	"time"
+
+	"go.uber.org/zap"
 
 	"github.com/gin-gonic/gin"
 )
@@ -52,7 +54,7 @@ func OperationLogger(logDAO *dao.LogDAO, logRepo *es.LogRepo) gin.HandlerFunc {
 		// 双写 ES：同步写入，失败仅告警，不阻断请求
 		if logRepo != nil && logRepo.Enabled() {
 			if err := logRepo.Index(logEntry); err != nil {
-				log.Printf("ES 日志写入失败: %v", err)
+				logger.Warn("ES 日志写入失败", zap.Error(err))
 			}
 		}
 	}

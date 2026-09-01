@@ -4,7 +4,6 @@
 node_modules
 web/node_modules
 certs
-docs
 *.md
 .dockerignore
 docker-compose*.yml

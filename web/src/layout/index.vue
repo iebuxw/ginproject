@@ -168,7 +168,9 @@ export default {
       } catch (e) { /* 静默 */ }
     },
     goCenter() {
-      this.$router.push('/system/notification')
+      if (this.$route.path !== '/system/notification') {
+        this.$router.push('/system/notification')
+      }
     },
     async handleCommand(cmd) {
       if (cmd === 'profile') {

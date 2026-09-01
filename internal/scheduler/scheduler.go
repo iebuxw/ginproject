@@ -176,6 +176,7 @@ func (s *Scheduler) saveExec(taskID uint, trigger string, status, httpStatus int
 		Response:   response,
 		ErrorMsg:   errMsg,
 		DurationMS: durationMS,
+		CreatedAt:  model.DateTime(time.Now()),
 	}
 	if err := s.execDAO.Create(e); err != nil {
 		logger.Error("任务执行日志写入失败", zap.Uint("task_id", taskID), zap.Error(err))

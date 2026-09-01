@@ -32,7 +32,7 @@ type CronTaskExecution struct {
 	Response   string    `gorm:"type:text" json:"response"`
 	ErrorMsg   string    `gorm:"size:255;default:''" json:"error_msg"`
 	DurationMS int       `json:"duration_ms"`
-	CreatedAt  time.Time `json:"created_at"`
+	CreatedAt  DateTime  `json:"created_at"`
 }
 
 func (CronTaskExecution) TableName() string { return "cron_task_executions" }

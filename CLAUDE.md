@@ -73,7 +73,7 @@ internal/
 - **Go** 1.18 / **Gin** v1.9.1 / **GORM** v1.25.5
 - **Vue** 2.7.16 / **Element UI** 2.15.14
 - **MySQL** 5.7 / **Redis** 3.2-alpine / **RabbitMQ** 3-management / **Elasticsearch** 7.17.15（IK 同版本）
-- **部署**：Docker Compose 编排，Go 多阶段构建（golang:1.18-alpine → alpine:3），nginx 自签证书反代（http:80→https:8443），API 代理到 go-app:8000
+- **部署**：Docker Compose 编排，Go 多阶段构建（golang:1.18-alpine → alpine:3），API 代理到 go-app:8000
 
 ## 关键设计
 

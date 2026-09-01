@@ -15,7 +15,16 @@ type Config struct {
 	RabbitMQ         RabbitMQConfig
 	Mail             MailConfig
 	Elasticsearch    ElasticsearchConfig
+	Log              LogConfig
 	LogCleanupSecret string
+}
+
+type LogConfig struct {
+	Level      string // debug, info, warn, error
+	FilePath   string // 日志文件路径，空则仅输出控制台
+	MaxSize    int    // 单文件最大 MB
+	MaxBackups int    // 保留旧文件个数
+	MaxDays    int    // 保留天数
 }
 
 type ServerConfig struct{ Port string }
@@ -84,6 +93,11 @@ func Load() *Config {
 	viper.SetDefault("JWT_EXPIRE_HOURS", 24)
 	viper.SetDefault("LOGIN_LOCK_MAX_ATTEMPTS", 5)
 	viper.SetDefault("LOGIN_LOCK_DURATION", 15)
+	viper.SetDefault("LOG_LEVEL", "info")
+	viper.SetDefault("LOG_FILE_PATH", "logs/app.log")
+	viper.SetDefault("LOG_MAX_SIZE", 100)
+	viper.SetDefault("LOG_MAX_BACKUPS", 7)
+	viper.SetDefault("LOG_MAX_DAYS", 30)
 
 	return &Config{
 		Server: ServerConfig{Port: viper.GetString("SERVER_PORT")},
@@ -126,6 +140,13 @@ func Load() *Config {
 			Port:     viper.GetString("ES_PORT"),
 			Username: viper.GetString("ES_USERNAME"),
 			Password: viper.GetString("ES_PASSWORD"),
+		},
+		Log: LogConfig{
+			Level:      viper.GetString("LOG_LEVEL"),
+			FilePath:   viper.GetString("LOG_FILE_PATH"),
+			MaxSize:    viper.GetInt("LOG_MAX_SIZE"),
+			MaxBackups: viper.GetInt("LOG_MAX_BACKUPS"),
+			MaxDays:    viper.GetInt("LOG_MAX_DAYS"),
 		},
 		LogCleanupSecret: viper.GetString("LOG_CLEANUP_SECRET"),
 	}

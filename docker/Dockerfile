@@ -24,6 +24,7 @@ WORKDIR /app
 COPY --from=builder /build/server .
 COPY .env .env
 COPY migrations/ ./migrations/
+RUN mkdir -p logs
 
 EXPOSE 8000
 CMD ["./server"]

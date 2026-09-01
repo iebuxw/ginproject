@@ -2,12 +2,14 @@ package service
 
 import (
 	"errors"
-	"log"
 	"sort"
 
 	"ginproject/internal/dao"
+	"ginproject/internal/logger"
 	"ginproject/internal/model"
 	"ginproject/internal/ws"
+
+	"go.uber.org/zap"
 )
 
 // SendTarget 发布请求的收件范围
@@ -58,7 +60,7 @@ func (s *NotificationService) SendSystemEvent(title, content string, userID uint
 		TargetType: 3,
 	}
 	if err := s.notificationDAO.CreateWithRecipients(n, []uint{userID}); err != nil {
-		log.Printf("系统事件消息落库失败: %v", err)
+		logger.Error("系统事件消息落库失败", zap.Error(err))
 		return
 	}
 	s.hub.Send(userID, ws.Message{

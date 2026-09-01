@@ -3,13 +3,13 @@ package service
 import (
 	"crypto/tls"
 	"fmt"
-	"log"
 	"mime"
 	"net"
 	"net/smtp"
 	"time"
 
 	"ginproject/internal/config"
+	"ginproject/internal/logger"
 )
 
 // LoginAlertQueue 登录告警邮件任务队列名（发布端与消费端共用）
@@ -30,7 +30,7 @@ func NewAlertMailService(cfg *config.Config) *AlertMailService {
 func (s *AlertMailService) SendLoginAlert(username, ip, message string) error {
 	m := s.cfg.Mail
 	if m.SMTPHost == "" || m.SMTPPort == "" || m.SMTPTo == "" {
-		log.Printf("登录告警邮件未发送：SMTP 未配置")
+		logger.Warn("登录告警邮件未发送：SMTP 未配置")
 		return nil
 	}
 

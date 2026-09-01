@@ -2,12 +2,14 @@ package service
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"ginproject/internal/dao"
 	"ginproject/internal/es"
+	"ginproject/internal/logger"
 	"ginproject/internal/model"
+
+	"go.uber.org/zap"
 )
 
 type LogService struct {
@@ -56,9 +58,9 @@ func (s *LogService) Cleanup(days int) (int64, error) {
 		}
 	}
 	if n, err := s.logRepo.DeleteByTime(before); err != nil {
-		log.Printf("ES 清理旧操作日志失败（已降级仅清 MySQL）: %v", err)
+		logger.Warn("ES 清理旧操作日志失败（已降级仅清 MySQL）", zap.Error(err))
 	} else if n > 0 {
-		log.Printf("ES 已清理 %d 条旧操作日志", n)
+		logger.Info("ES 已清理旧操作日志", zap.Int64("count", n))
 	}
 	return total, nil
 }

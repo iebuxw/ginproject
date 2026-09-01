@@ -4,13 +4,15 @@ import (
 	"crypto/rand"
 	"fmt"
 	"ginproject/internal/dao"
+	"ginproject/internal/logger"
 	"ginproject/internal/model"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 // 黑名单：仅挡可执行/脚本类扩展名，其余类型不限
@@ -91,7 +93,7 @@ func (s *FileService) Delete(id int64) error {
 	savePath := filepath.Join(s.uploadDir, file.StoredName)
 	if _, err := os.Stat(savePath); err == nil {
 		if err := os.Remove(savePath); err != nil {
-			log.Printf("警告: 物理文件删除失败 %s: %v", savePath, err)
+			logger.Warn("物理文件删除失败", zap.String("path", savePath), zap.Error(err))
 		}
 	}
 	return nil

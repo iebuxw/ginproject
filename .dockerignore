@@ -7,3 +7,4 @@ certs
 *.md
 .dockerignore
 docker-compose*.yml
+docs/superpowers

@@ -2,8 +2,11 @@ package captcha
 
 import (
 	"context"
-	"log"
 	"time"
+
+	"ginproject/internal/logger"
+
+	"go.uber.org/zap"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -24,7 +27,7 @@ func NewRedisStore(rdb *redis.Client) *RedisStore {
 func (s *RedisStore) Set(id string, digits []byte) {
 	key := "captcha:" + id
 	if err := s.rdb.Set(context.Background(), key, string(digits), captchaTTL).Err(); err != nil {
-		log.Printf("验证码存储失败: %v", err)
+		logger.Error("验证码存储失败", zap.Error(err))
 	}
 }
 

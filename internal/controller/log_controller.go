@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -13,8 +12,11 @@ import (
 	"time"
 
 	"ginproject/internal/es"
+	"ginproject/internal/logger"
 	"ginproject/internal/service"
 	"ginproject/internal/utils"
+
+	"go.uber.org/zap"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rabbitmq/amqp091-go"
@@ -72,7 +74,7 @@ func (ctl *LogController) List(c *gin.Context) {
 			utils.Success(c, gin.H{"list": hits, "total": total, "data_source": "es"})
 			return
 		}
-		log.Printf("ES 查询失败，回退 MySQL: %v", err)
+		logger.Warn("ES 查询失败，回退 MySQL", zap.Error(err))
 	}
 
 	logs, total, err := ctl.logService.FindPage(page, pageSize, module, method)

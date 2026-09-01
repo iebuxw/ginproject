@@ -1,0 +1,31 @@
+# 本地开发配置，docker compose up 自动加载
+services:
+  mysql:
+    ports:
+      - "3307:3306"
+
+  redis:
+    ports:
+      - "6380:6379"
+
+  rabbitmq:
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+
+  go-app:
+    ports:
+      - "8000:8000"
+
+  elasticsearch:
+    ports:
+      - "9200:9200"
+
+  kibana:
+    ports:
+      - "5601:5601"
+
+  nginx:
+    ports:
+      - "8080:80"
+      - "8443:443"

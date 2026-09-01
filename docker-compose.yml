@@ -6,11 +6,9 @@ services:
     container_name: ginadmin-mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: admin123
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_DATABASE: ginadmin
       TZ: Asia/Shanghai
-    ports:
-      - "3307:3306"
     volumes:
       - mysql-data:/var/lib/mysql
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
@@ -24,8 +22,6 @@ services:
     image: redis:3.2-alpine
     container_name: ginadmin-redis
     restart: always
-    ports:
-      - "6380:6379"
     volumes:
       - redis-data:/data
       - ./docker/redis.conf:/usr/local/etc/redis/redis.conf
@@ -40,12 +36,9 @@ services:
     image: rabbitmq:3-management
     container_name: ginadmin-rabbitmq
     restart: always
-    ports:
-      - "15672:15672"
-      - "5672:5672"
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
@@ -58,11 +51,10 @@ services:
       dockerfile: docker/Dockerfile
     container_name: ginadmin-api
     restart: always
-    ports:
-      - "8000:8000"
     volumes:
       - uploads:/app/uploads
       - go-logs:/app/logs
+      - ./.env:/app/.env:ro
     depends_on:
       mysql:
         condition: service_healthy
@@ -87,8 +79,6 @@ services:
       - discovery.type=single-node
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
       - xpack.security.enabled=false
-    ports:
-      - "9200:9200"
     volumes:
       - es-data:/usr/share/elasticsearch/data
     healthcheck:
@@ -103,8 +93,6 @@ services:
     restart: always
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-    ports:
-      - "5601:5601"
     depends_on:
       elasticsearch:
         condition: service_healthy
@@ -115,11 +103,9 @@ services:
       dockerfile: docker/Dockerfile.nginx
     container_name: ginadmin-nginx
     restart: always
-    ports:
-      - "8080:80"
-      - "8443:443"
     volumes:
       - ./certs:/etc/nginx/certs:ro
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       go-app:
         condition: service_healthy

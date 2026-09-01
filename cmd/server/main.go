@@ -16,12 +16,12 @@ import (
 	"ginproject/internal/controller"
 	"ginproject/internal/dao"
 	"ginproject/internal/es"
+	"ginproject/internal/logger"
 	"ginproject/internal/router"
 	"ginproject/internal/scheduler"
 	"ginproject/internal/service"
 	"ginproject/internal/worker"
 	"ginproject/internal/ws"
-	"log"
 	"strconv"
 	"strings"
 
@@ -33,6 +33,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/rabbitmq/amqp091-go"
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -40,13 +41,23 @@ import (
 func main() {
 	cfg := config.Load()
 
+	// 初始化 zap 日志
+	logger.Init(logger.LogConfig{
+		Level:      cfg.Log.Level,
+		FilePath:   cfg.Log.FilePath,
+		MaxSize:    cfg.Log.MaxSize,
+		MaxBackups: cfg.Log.MaxBackups,
+		MaxDays:    cfg.Log.MaxDays,
+	})
+	defer logger.Sync()
+
 	// MySQL
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		cfg.Database.User, cfg.Database.Password,
 		cfg.Database.Host, cfg.Database.Port, cfg.Database.DBName)
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("MySQL 连接失败: %v", err)
+		logger.Fatal("MySQL 连接失败", zap.Error(err))
 	}
 
 	// Redis
@@ -57,19 +68,19 @@ func main() {
 
 	// 数据库迁移
 	if err := runMigrations(cfg); err != nil {
-		log.Fatalf("数据库迁移失败: %v", err)
+		logger.Fatal("数据库迁移失败", zap.Error(err))
 	}
 
 	// Elasticsearch（学习用；失败不 fatal：写入跳过、查询回退 MySQL）
 	esClient, esErr := es.NewClient(&cfg.Elasticsearch)
 	if esErr != nil || esClient.Ping() != nil {
-		log.Printf("警告: Elasticsearch 不可用，日志全文搜索将回退 MySQL: %v", esErr)
+		logger.Warn("Elasticsearch 不可用，日志全文搜索将回退 MySQL", zap.Error(esErr))
 		esClient = nil
 	}
 	logRepo := es.NewLogRepo(esClient)
 	if logRepo.Enabled() {
 		if err := es.EnsureIndex(esClient.RawClient()); err != nil {
-			log.Printf("警告: ES 索引初始化失败: %v", err)
+			logger.Warn("ES 索引初始化失败", zap.Error(err))
 		}
 	}
 
@@ -105,13 +116,13 @@ func main() {
 	// RabbitMQ
 	amqpConn, err := amqp091.Dial(cfg.RabbitMQ.DSN())
 	if err != nil {
-		log.Fatalf("RabbitMQ 连接失败: %v", err)
+		logger.Fatal("RabbitMQ 连接失败", zap.Error(err))
 	}
 	defer amqpConn.Close()
 
 	publishCh, err := amqpConn.Channel()
 	if err != nil {
-		log.Fatalf("RabbitMQ Channel 创建失败: %v", err)
+		logger.Fatal("RabbitMQ Channel 创建失败", zap.Error(err))
 	}
 	defer publishCh.Close()
 
@@ -243,9 +254,9 @@ func main() {
 	// Router
 	r := router.Setup(cfg, authCtrl, userCtrl, roleCtrl, menuCtrl, logCtrl, loginLogCtrl, wsCtrl, uploadCtrl, authService, userDAO, menuDAO, logDAO, logRepo, dictTypeCtrl, dictDataCtrl, cronTaskCtrl, dbBackupCtrl, fileCtrl, dashboardCtrl, healthCtrl, settingCtrl, captchaCtrl, notificationCtrl, logSettingCtrl)
 
-	log.Printf("Server running on :%s", cfg.Server.Port)
+	logger.Info("Server running", zap.String("port", cfg.Server.Port))
 	if err := r.Run(":" + cfg.Server.Port); err != nil {
-		log.Fatalf("启动失败: %v", err)
+		logger.Fatal("启动失败", zap.Error(err))
 	}
 }
 
@@ -264,6 +275,6 @@ func runMigrations(cfg *config.Config) error {
 		return fmt.Errorf("执行迁移失败: %w", err)
 	}
 
-	log.Println("数据库迁移完成")
+	logger.Info("数据库迁移完成")
 	return nil
 }

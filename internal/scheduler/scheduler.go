@@ -4,13 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"ginproject/internal/dao"
+	"ginproject/internal/logger"
 	"ginproject/internal/model"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
+
+	"go.uber.org/zap"
 
 	"github.com/robfig/cron/v3"
 )
@@ -61,7 +63,7 @@ func (s *Scheduler) Reload() {
 	c := cron.New(cron.WithParser(parser))
 	tasks, err := s.taskDAO.FindEnabled()
 	if err != nil {
-		log.Printf("调度器加载任务失败: %v", err)
+		logger.Error("调度器加载任务失败", zap.Error(err))
 		return
 	}
 	for i := range tasks {
@@ -70,12 +72,12 @@ func (s *Scheduler) Reload() {
 			s.execute(&task, "cron")
 		})
 		if err != nil {
-			log.Printf("任务 %d 注册失败: %v", task.ID, err)
+			logger.Error("任务注册失败", zap.Uint("task_id", task.ID), zap.Error(err))
 		}
 	}
 	c.Start()
 	s.cron = c
-	log.Printf("调度器已加载 %d 个启用任务", len(tasks))
+	logger.Info("调度器已加载启用任务", zap.Int("count", len(tasks)))
 }
 
 // RunNow 立即执行一次（写 trigger=manual 日志）
@@ -91,7 +93,7 @@ func (s *Scheduler) RunNow(id uint) error {
 func (s *Scheduler) execute(task *model.CronTask, trigger string) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("任务 %d 执行 panic: %v", task.ID, r)
+			logger.Error("任务执行 panic", zap.Uint("task_id", task.ID), zap.Any("recover", r))
 		}
 	}()
 
@@ -176,6 +178,6 @@ func (s *Scheduler) saveExec(taskID uint, trigger string, status, httpStatus int
 		DurationMS: durationMS,
 	}
 	if err := s.execDAO.Create(e); err != nil {
-		log.Printf("任务 %d 执行日志写入失败: %v", taskID, err)
+		logger.Error("任务执行日志写入失败", zap.Uint("task_id", taskID), zap.Error(err))
 	}
 }

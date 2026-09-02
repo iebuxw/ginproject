@@ -15,6 +15,7 @@ type CronTask struct {
 	Timeout        int       `gorm:"not null;default:30" json:"timeout"`
 	Status         int       `gorm:"not null;default:1" json:"status"`
 	Remark         string    `gorm:"size:255;default:''" json:"remark"`
+	// `->` 在 GORM 里面含义：只读字段，一般子查询、JOIN、或者 Select 额外查出来的一个派生字段，临时赋值
 	LastExecStatus int       `gorm:"->" json:"last_exec_status"` // 最近一次执行状态，-1=无记录（只读，列表子查询填充）
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`

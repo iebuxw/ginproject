@@ -37,7 +37,13 @@ func (d *UserDAO) Update(u *model.User) error {
 }
 
 func (d *UserDAO) Delete(id uint) error {
-	return d.db.Delete(&model.User{}, id).Error
+	return d.db.Transaction(func(tx *gorm.DB) error {
+		// 先清除用户与角色的关联关系，避免外键约束报错
+		if err := tx.Table("user_roles").Where("user_id = ?", id).Delete(nil).Error; err != nil {
+			return err
+		}
+		return tx.Delete(&model.User{}, id).Error
+	})
 }
 
 func (d *UserDAO) UpdateAvatar(userID uint, avatar string) error {

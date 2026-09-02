@@ -19,7 +19,13 @@ func (d *MenuDAO) Update(m *model.Menu) error {
 }
 
 func (d *MenuDAO) Delete(id uint) error {
-	return d.db.Delete(&model.Menu{}, id).Error
+	return d.db.Transaction(func(tx *gorm.DB) error {
+		// 先清除菜单与角色的关联关系，避免外键约束报错
+		if err := tx.Table("role_menus").Where("menu_id = ?", id).Delete(nil).Error; err != nil {
+			return err
+		}
+		return tx.Delete(&model.Menu{}, id).Error
+	})
 }
 
 func (d *MenuDAO) FindByID(id uint) (*model.Menu, error) {

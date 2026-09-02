@@ -13,7 +13,12 @@
           <template slot-scope="s">{{ ['', '目录', '菜单', '按钮'][s.row.type] }}</template>
         </el-table-column>
         <el-table-column prop="permission" label="权限标识"></el-table-column>
-        <el-table-column prop="sort" label="排序" width="60"></el-table-column>
+        <el-table-column label="排序" width="80">
+          <template slot-scope="s">
+            <span class="sort-handle" style="cursor:move;font-size:16px">&#9776;</span>
+            <span style="margin-left:4px">{{ s.row.sort }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="状态" width="80">
           <template slot-scope="s">
             <el-tag :type="s.row.status === 1 ? 'success' : 'danger'">{{ s.row.status === 1 ? '启用' : '禁用' }}</el-tag>
@@ -59,21 +64,81 @@
   </div>
 </template>
 <script>
-import { getMenus, addMenu, updateMenu, deleteMenu } from '@/api/menu'
+import Sortable from 'sortablejs'
+import { getMenus, addMenu, updateMenu, deleteMenu, sortMenus } from '@/api/menu'
 export default {
   data() {
     return {
       menuList: [], dialogVisible: false, isEdit: false,
       form: { parent_id: 0, name: '', icon: '', path: '', type: 1, permission: '', sort: 0, status: 1 },
-      cascaderOptions: []
+      cascaderOptions: [],
+      sortableInstance: null
     }
   },
   created() { this.fetchData() },
+  mounted() { this.initSortable() },
+  beforeDestroy() {
+    if (this.sortableInstance) { this.sortableInstance.destroy(); this.sortableInstance = null }
+  },
   methods: {
     async fetchData() {
       const res = await getMenus()
       this.menuList = res.data
       this.cascaderOptions = res.data
+      this.$nextTick(() => { this.initSortable() })
+    },
+    initSortable() {
+      const el = this.$el.querySelector('.el-table__body-wrapper tbody')
+      if (!el) return
+      if (this.sortableInstance) { this.sortableInstance.destroy() }
+      this.sortableInstance = Sortable.create(el, {
+        handle: '.sort-handle',
+        animation: 150,
+        onMove: (evt) => {
+          const draggedRow = evt.dragged
+          const relatedRow = evt.related
+          const draggedId = parseInt(draggedRow.getAttribute('data-row-key'))
+          const relatedId = parseInt(relatedRow.getAttribute('data-row-key'))
+          const draggedMenu = this.findMenuById(this.menuList, draggedId)
+          const relatedMenu = this.findMenuById(this.menuList, relatedId)
+          if (!draggedMenu || !relatedMenu) return false
+          return draggedMenu.parent_id === relatedMenu.parent_id
+        },
+        onEnd: async (evt) => {
+          const draggedId = parseInt(evt.item.getAttribute('data-row-key'))
+          const menu = this.findMenuById(this.menuList, draggedId)
+          if (!menu) return
+          const tbody = evt.from
+          const rows = tbody.querySelectorAll('tr[data-row-key]')
+          const siblings = []
+          rows.forEach(row => {
+            const id = parseInt(row.getAttribute('data-row-key'))
+            const m = this.findMenuById(this.menuList, id)
+            if (m && m.parent_id === menu.parent_id) {
+              siblings.push(m)
+            }
+          })
+          const sortData = siblings.map((m, index) => ({ id: m.id, sort: index }))
+          try {
+            await sortMenus(sortData)
+            await this.fetchData()
+            this.$message.success('排序成功')
+          } catch {
+            this.$message.error('排序失败')
+            await this.fetchData()
+          }
+        }
+      })
+    },
+    findMenuById(menus, id) {
+      for (const m of menus) {
+        if (m.id === id) return m
+        if (m.children && m.children.length > 0) {
+          const found = this.findMenuById(m.children, id)
+          if (found) return found
+        }
+      }
+      return null
     },
     openDialog(row) {
       if (row) { this.isEdit = true; this.form = { ...row } }

@@ -14,6 +14,12 @@ func (d *RoleDAO) Create(r *model.Role) error {
 	return d.db.Create(r).Error
 }
 
+func (d *RoleDAO) FindByName(name string) (*model.Role, error) {
+	var r model.Role
+	err := d.db.Where("name = ?", name).First(&r).Error
+	return &r, err
+}
+
 func (d *RoleDAO) Update(r *model.Role) error {
 	return d.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(r).Association("Menus").Replace(r.Menus); err != nil {
@@ -24,7 +30,14 @@ func (d *RoleDAO) Update(r *model.Role) error {
 }
 
 func (d *RoleDAO) Delete(id uint) error {
-	return d.db.Delete(&model.Role{}, id).Error
+	return d.db.Transaction(func(tx *gorm.DB) error {
+		r := &model.Role{ID: id}
+		// 先清除角色与菜单的关联关系，避免外键约束报错
+		if err := tx.Model(r).Association("Menus").Clear(); err != nil {
+			return err
+		}
+		return tx.Delete(r).Error
+	})
 }
 
 func (d *RoleDAO) FindByID(id uint) (*model.Role, error) {

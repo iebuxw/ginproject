@@ -34,11 +34,12 @@ func (d *RoleDAO) Update(r *model.Role) error {
 func (d *RoleDAO) Delete(id uint) error {
 	return d.db.Transaction(func(tx *gorm.DB) error {
 		r := &model.Role{ID: id}
-		// 先清除角色与用户、菜单的关联关系，避免外键约束报错
-		// 注意：中间表操作不会增删 User、Role 主表的数据
+		// 先清除角色与用户的关联关系，避免外键约束报错
 		if err := tx.Table("user_roles").Where("role_id = ?", id).Delete(nil).Error; err != nil {
 			return err
 		}
+		// 先清除角色与菜单的关联关系，避免外键约束报错
+		// 注意：中间表操作不会增删 Menus、Role 主表的数据
 		if err := tx.Model(r).Association("Menus").Clear(); err != nil {
 			return err
 		}

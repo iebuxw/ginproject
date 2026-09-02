@@ -17,4 +17,10 @@ type Menu struct {
 	UpdatedAt  time.Time `json:"updated_at"`
 }
 
+// MenuItemSort 批量排序请求项
+type MenuItemSort struct {
+	ID   uint `json:"id"`
+	Sort int  `json:"sort"`
+}
+
 func (Menu) TableName() string { return "menus" }

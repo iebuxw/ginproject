@@ -63,6 +63,19 @@ func (d *MenuDAO) FindByRoleIDs(roleIDs []uint) ([]model.Menu, error) {
 	return menus, err
 }
 
+// BatchUpdateSort 批量更新菜单排序值
+func (d *MenuDAO) BatchUpdateSort(items []model.MenuItemSort) error {
+	return d.db.Transaction(func(tx *gorm.DB) error {
+		for _, item := range items {
+			if err := tx.Model(&model.Menu{}).Where("id = ?", item.ID).
+				Update("sort", item.Sort).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 func BuildMenuTree(menus []model.Menu, parentID uint) []model.Menu {
 	var tree []model.Menu
 	for _, m := range menus {

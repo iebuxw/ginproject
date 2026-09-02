@@ -168,6 +168,8 @@ User ──N:M── Role ──N:M── Menu
 - 修改功能仅改动需求指定范围；原有校验、权限、异常逻辑若无要求不得删除
 - 所有错误必须捕获处理并打日志，禁止丢弃 error
 - Service 层捕获 MySQL 唯一索引冲突：`strings.Contains(err.Error(), "Duplicate entry")` 判断后返回友好中文提示，不暴露原始 DB 错误
+- 表单校验前后端都要做：后端 Controller 结构体 binding tag 必须包含完整校验（`required`、`min`/`max`、`email` 等，不要只写 `required`）；前端 el-form 的 rules 补齐对应校验规则
+- 创建/编辑前主动查重唯一性字段（名称、编码等），不要依赖数据库唯一索引兜底
 - SQL 使用参数绑定，禁止字符串拼接SQL；迁移脚本禁止硬编码自增ID定位种子数据
 - Golang 禁止滥用 interface{}，优先定义明确类型
 - 警惕 N+1 查询，禁止循环内调用数据库或远程接口

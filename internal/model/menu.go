@@ -19,8 +19,8 @@ type Menu struct {
 
 // MenuItemSort 批量排序请求项
 type MenuItemSort struct {
-	ID   uint `json:"id"`
-	Sort int  `json:"sort"`
+	ID   uint `json:"id" binding:"required"`
+	Sort int  `json:"sort" binding:"required"`
 }
 
 func (Menu) TableName() string { return "menus" }

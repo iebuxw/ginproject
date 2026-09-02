@@ -187,9 +187,14 @@ export default {
     },
     async handleSubmit() {
       try { await this.$refs.userForm.validate() } catch { return }
-      if (this.isEdit) { await updateUser(this.form.id, this.form) }
-      else { await addUser(this.form) }
-      this.dialogVisible = false; this.fetchData()
+      try {
+        if (this.isEdit) { await updateUser(this.form.id, this.form) }
+        else { await addUser(this.form) }
+        this.dialogVisible = false
+        this.fetchData()
+      } catch {
+        // 错误已由全局拦截器 Message.error 展示，弹窗不关闭
+      }
     },
     async handleDelete(id) {
       await this.$confirm('确认删除该管理员?', '提示', { type: 'warning' })

@@ -22,17 +22,23 @@ func (d *RoleDAO) FindByName(name string) (*model.Role, error) {
 
 func (d *RoleDAO) Update(r *model.Role) error {
 	return d.db.Transaction(func(tx *gorm.DB) error {
+		// Replace：替换当前对象全部的多对多关联（原子操作）
+		// 逻辑：先删除当前角色所有旧的菜单关联，再把你传入的新菜单列表全部添加进去
 		if err := tx.Model(r).Association("Menus").Replace(r.Menus); err != nil {
 			return err
 		}
-		return tx.Omit("created_at").Save(r).Error
+		return tx.Omit("created_at").Save(r).Error	// Omit 忽略字段
 	})
 }
 
 func (d *RoleDAO) Delete(id uint) error {
 	return d.db.Transaction(func(tx *gorm.DB) error {
 		r := &model.Role{ID: id}
-		// 先清除角色与菜单的关联关系，避免外键约束报错
+		// 先清除角色与用户、菜单的关联关系，避免外键约束报错
+		// 注意：中间表操作不会增删 User、Role 主表的数据
+		if err := tx.Table("user_roles").Where("role_id = ?", id).Delete(nil).Error; err != nil {
+			return err
+		}
 		if err := tx.Model(r).Association("Menus").Clear(); err != nil {
 			return err
 		}
@@ -42,6 +48,8 @@ func (d *RoleDAO) Delete(id uint) error {
 
 func (d *RoleDAO) FindByID(id uint) (*model.Role, error) {
 	var r model.Role
+	// Preload：N+1 查询，先查 r，再查 Menus，只不过这里是 1+1 查询
+	// Menus 必须是 Role 里关联字段的字段名
 	err := d.db.Preload("Menus").First(&r, id).Error
 	return &r, err
 }

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"strings"
 
 	"ginproject/internal/dao"
@@ -24,7 +25,10 @@ func (s *UserService) Create(u *model.User, roleIDs []uint) error {
 	}
 	u.Password = hashed
 	u.Roles = buildRoles(roleIDs)
-	return s.userDAO.Create(u)
+	if err := s.userDAO.Create(u); err != nil {
+		return friendlyDuplicateError(err)
+	}
+	return nil
 }
 
 func (s *UserService) Update(u *model.User, roleIDs []uint) error {
@@ -36,7 +40,10 @@ func (s *UserService) Update(u *model.User, roleIDs []uint) error {
 		u.Password = hashed
 	}
 	u.Roles = buildRoles(roleIDs)
-	return s.userDAO.Update(u)
+	if err := s.userDAO.Update(u); err != nil {
+		return friendlyDuplicateError(err)
+	}
+	return nil
 }
 
 func buildRoles(ids []uint) []model.Role {
@@ -45,6 +52,14 @@ func buildRoles(ids []uint) []model.Role {
 		roles[i] = model.Role{ID: id}
 	}
 	return roles
+}
+
+// friendlyDuplicateError 将 MySQL 唯一索引冲突错误转为友好提示
+func friendlyDuplicateError(err error) error {
+	if err != nil && strings.Contains(err.Error(), "Duplicate entry") && strings.Contains(err.Error(), "username") {
+		return fmt.Errorf("用户名已存在")
+	}
+	return err
 }
 
 func (s *UserService) Delete(id uint) error { return s.userDAO.Delete(id) }

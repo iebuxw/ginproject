@@ -111,6 +111,8 @@ func Setup(
 			middleware.RequirePerm("menu:query"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), menuCtrl.Get)
 		authorized.POST("/menus",
 			middleware.RequirePerm("menu:add"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), menuCtrl.Create)
+		authorized.PUT("/menus/sort",
+			middleware.RequirePerm("menu:edit"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), menuCtrl.Sort)
 		authorized.PUT("/menus/:id",
 			middleware.RequirePerm("menu:edit"), middleware.RBAC(menuDAO), middleware.OperationLogger(logDAO, logRepo), menuCtrl.Update)
 		authorized.DELETE("/menus/:id",

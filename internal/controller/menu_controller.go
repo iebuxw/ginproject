@@ -121,3 +121,27 @@ func (ctl *MenuController) Delete(c *gin.Context) {
 	}
 	utils.Success(c, nil)
 }
+
+// Sort 批量更新菜单排序
+// @Summary 批量更新菜单排序
+// @Description 批量更新菜单的 sort 字段，用于拖拽排序
+// @Tags 菜单管理
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param body body []model.MenuItemSort true "排序列表"
+// @Success 200 {object} utils.Response "成功"
+// @Failure 200 {object} utils.Response "业务错误"
+// @Router /menus/sort [put]
+func (ctl *MenuController) Sort(c *gin.Context) {
+	var items []model.MenuItemSort
+	if err := c.ShouldBindJSON(&items); err != nil {
+		utils.Error(c, 400, "参数错误")
+		return
+	}
+	if err := ctl.menuService.BatchUpdateSort(items); err != nil {
+		utils.Error(c, 500, err.Error())
+		return
+	}
+	utils.Success(c, nil)
+}

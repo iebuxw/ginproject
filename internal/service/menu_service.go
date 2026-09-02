@@ -35,6 +35,10 @@ func (s *MenuService) Delete(id uint) error {
 
 func (s *MenuService) FindByID(id uint) (*model.Menu, error) { return s.menuDAO.FindByID(id) }
 
+func (s *MenuService) BatchUpdateSort(items []model.MenuItemSort) error {
+	return s.menuDAO.BatchUpdateSort(items)
+}
+
 func (s *MenuService) GetTree() ([]model.Menu, error) {
 	menus, err := s.menuDAO.FindAll()
 	if err != nil {

@@ -37,7 +37,16 @@ func (s *RoleService) Update(r *model.Role) error {
 	return s.roleDAO.Update(r)
 }
 
-func (s *RoleService) Delete(id uint) error { return s.roleDAO.Delete(id) }
+func (s *RoleService) Delete(id uint) error {
+	count, err := s.roleDAO.CountUsers(id)
+	if err != nil {
+		return err
+	}
+	if count > 0 {
+		return fmt.Errorf("该角色下有 %d 个用户，请先移除关联再删除", count)
+	}
+	return s.roleDAO.Delete(id)
+}
 
 func (s *RoleService) FindByID(id uint) (*model.Role, error) { return s.roleDAO.FindByID(id) }
 

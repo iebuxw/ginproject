@@ -83,3 +83,10 @@ func (d *RoleDAO) FindAll() ([]model.Role, error) {
 	err := d.db.Where("status = 1").Find(&roles).Error
 	return roles, err
 }
+
+// CountUsers 统计角色关联的用户数
+func (d *RoleDAO) CountUsers(roleID uint) (int64, error) {
+	var count int64
+	err := d.db.Table("user_roles").Where("role_id = ?", roleID).Count(&count).Error
+	return count, err
+}

@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"ginproject/internal/dao"
 	"ginproject/internal/model"
 )
@@ -21,6 +22,13 @@ func (s *MenuService) Delete(id uint) error {
 	}
 	if has {
 		return errors.New("该菜单下有子菜单，无法删除")
+	}
+	count, err := s.menuDAO.CountRoles(id)
+	if err != nil {
+		return err
+	}
+	if count > 0 {
+		return fmt.Errorf("该菜单已分配给 %d 个角色，请先移除关联再删除", count)
 	}
 	return s.menuDAO.Delete(id)
 }

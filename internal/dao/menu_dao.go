@@ -46,6 +46,13 @@ func (d *MenuDAO) FindAll() ([]model.Menu, error) {
 	return menus, err
 }
 
+// CountRoles 统计菜单关联的角色数
+func (d *MenuDAO) CountRoles(menuID uint) (int64, error) {
+	var count int64
+	err := d.db.Table("role_menus").Where("menu_id = ?", menuID).Count(&count).Error
+	return count, err
+}
+
 func (d *MenuDAO) FindByRoleIDs(roleIDs []uint) ([]model.Menu, error) {
 	var menus []model.Menu
 	err := d.db.Distinct("menus.*").

@@ -76,7 +76,6 @@ export default {
     }
   },
   created() { this.fetchData() },
-  mounted() { this.initSortable() },
   beforeDestroy() {
     if (this.sortableInstance) { this.sortableInstance.destroy(); this.sortableInstance = null }
   },
@@ -123,7 +122,8 @@ export default {
             await sortMenus(sortData)
             await this.fetchData()
             this.$message.success('排序成功')
-          } catch {
+          } catch (err) {
+            console.error('排序失败:', err)
             this.$message.error('排序失败')
             await this.fetchData()
           }

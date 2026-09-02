@@ -49,7 +49,7 @@
     </el-card>
 
     <el-dialog :title="isEdit ? '编辑管理员' : '新增管理员'" :visible.sync="dialogVisible" width="500px">
-      <el-form :model="form" label-width="80px">
+      <el-form ref="userForm" :model="form" :rules="rules" label-width="80px">
         <el-form-item label="头像">
           <el-upload
             action="/api/upload/avatar"
@@ -62,11 +62,11 @@
             <div style="margin-top:4px"><el-button size="mini" type="text">上传头像</el-button></div>
           </el-upload>
         </el-form-item>
-        <el-form-item label="用户名"><el-input v-model="form.username"></el-input></el-form-item>
-        <el-form-item label="密码"><el-input v-model="form.password" type="password" :placeholder="isEdit ? '留空不修改' : ''"></el-input></el-form-item>
-        <el-form-item label="邮箱"><el-input v-model="form.email"></el-input></el-form-item>
-        <el-form-item label="手机号"><el-input v-model="form.phone"></el-input></el-form-item>
-        <el-form-item label="描述"><el-input v-model="form.description"></el-input></el-form-item>
+        <el-form-item label="用户名" prop="username"><el-input v-model="form.username"></el-input></el-form-item>
+        <el-form-item label="密码" prop="password"><el-input v-model="form.password" type="password" :placeholder="isEdit ? '留空不修改' : ''"></el-input></el-form-item>
+        <el-form-item label="邮箱" prop="email"><el-input v-model="form.email"></el-input></el-form-item>
+        <el-form-item label="手机号" prop="phone"><el-input v-model="form.phone"></el-input></el-form-item>
+        <el-form-item label="描述" prop="description"><el-input v-model="form.description" type="textarea" :rows="3"></el-input></el-form-item>
         <el-form-item label="状态"><el-switch v-model="form.status" :active-value="1" :inactive-value="0"></el-switch></el-form-item>
         <el-form-item label="角色">
           <el-checkbox-group v-model="form.role_ids">
@@ -116,6 +116,28 @@ export default {
       dialogVisible: false, isEdit: false,
       form: { username: '', password: '', email: '', phone: '', description: '', avatar: '', status: 1, role_ids: [] },
       allRoles: [],
+      rules: {
+        username: [
+          { required: true, message: '请输入用户名', trigger: 'blur' },
+          { min: 2, max: 20, message: '用户名长度 2-20 个字符', trigger: 'blur' }
+        ],
+        password: [
+          { validator: (rule, value, callback) => {
+            if (!this.isEdit && (!value || !value.trim())) return callback(new Error('请输入密码'))
+            if (value && (value.length < 6 || value.length > 20)) return callback(new Error('密码长度 6-20 个字符'))
+            callback()
+          }, trigger: 'blur' }
+        ],
+        email: [
+          { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' }
+        ],
+        phone: [
+          { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' }
+        ],
+        description: [
+          { max: 255, message: '描述最长 255 个字符', trigger: 'blur' }
+        ]
+      },
       importDialogVisible: false, importing: false, importFile: null, importFileList: [], importResult: null
     }
   },
@@ -161,8 +183,10 @@ export default {
         this.form = { username: '', password: '', email: '', phone: '', description: '', avatar: '', status: 1, role_ids: [] }
       }
       this.dialogVisible = true
+      this.$nextTick(() => { this.$refs.userForm && this.$refs.userForm.clearValidate() })
     },
     async handleSubmit() {
+      try { await this.$refs.userForm.validate() } catch { return }
       if (this.isEdit) { await updateUser(this.form.id, this.form) }
       else { await addUser(this.form) }
       this.dialogVisible = false; this.fetchData()

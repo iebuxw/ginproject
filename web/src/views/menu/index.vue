@@ -75,6 +75,9 @@ export default {
       sortableInstance: null
     }
   },
+  computed: {
+    flatMenus() { return this.flattenMenus(this.menuList) }
+  },
   created() { this.fetchData() },
   beforeDestroy() {
     if (this.sortableInstance) { this.sortableInstance.destroy(); this.sortableInstance = null }
@@ -93,26 +96,27 @@ export default {
       this.sortableInstance = Sortable.create(el, {
         handle: '.sort-handle',
         animation: 150,
+        onStart: (evt) => {
+          // el-table 不设置 data-row-key，通过 flatMenus 索引定位
+          this._draggedMenu = this.flatMenus[evt.oldIndex]
+        },
         onMove: (evt) => {
-          const draggedRow = evt.dragged
-          const relatedRow = evt.related
-          const draggedId = parseInt(draggedRow.getAttribute('data-row-key'))
-          const relatedId = parseInt(relatedRow.getAttribute('data-row-key'))
-          const draggedMenu = this.findMenuById(this.menuList, draggedId)
-          const relatedMenu = this.findMenuById(this.menuList, relatedId)
-          if (!draggedMenu || !relatedMenu) return false
-          return draggedMenu.parent_id === relatedMenu.parent_id
+          if (!this._draggedMenu) return false
+          const relatedMenu = this.flatMenus[evt.newIndex]
+          if (!relatedMenu) return false
+          return this._draggedMenu.parent_id === relatedMenu.parent_id
         },
         onEnd: async (evt) => {
-          const draggedId = parseInt(evt.item.getAttribute('data-row-key'))
-          const menu = this.findMenuById(this.menuList, draggedId)
-          if (!menu) return
+          if (!this._draggedMenu) return
+          const menu = this._draggedMenu
+          this._draggedMenu = null
+          // 拖拽后 DOM 已重排，收集同级菜单
           const tbody = evt.from
-          const rows = tbody.querySelectorAll('tr[data-row-key]')
+          const rows = Array.from(tbody.children).filter(r => r.classList.contains('el-table__row'))
+          const newFlat = this.flattenMenus(this.menuList)
           const siblings = []
-          rows.forEach(row => {
-            const id = parseInt(row.getAttribute('data-row-key'))
-            const m = this.findMenuById(this.menuList, id)
+          rows.forEach((row, i) => {
+            const m = newFlat[i]
             if (m && m.parent_id === menu.parent_id) {
               siblings.push(m)
             }
@@ -129,6 +133,16 @@ export default {
           }
         }
       })
+    },
+    flattenMenus(menus) {
+      const result = []
+      for (const m of menus) {
+        result.push(m)
+        if (m.children && m.children.length > 0) {
+          result.push(...this.flattenMenus(m.children))
+        }
+      }
+      return result
     },
     findMenuById(menus, id) {
       for (const m of menus) {

@@ -114,6 +114,7 @@ User ──N:M── Role ──N:M── Menu
 - 前端是 **Vue 2 + Element UI**（不是 Vue 3）；`web/src/store/modules/permission.js` 用后端菜单树动态生成路由，**新增菜单必须在 `componentMap` 中添加路由映射**
 - 模型时间字段：需要 JSON 返回给前端的用 `DateTime`（输出 `2006-01-02 15:04:05`），不返回前端的（如 GORM 自动管理的）可用 `time.Time`；`DateTime` 不触发 GORM 自动时间戳，需手动赋值
 - 手动操作 MySQL 插入中文时需加 `--default-character-set=utf8mb4`，否则乱码
+- agent-browser 操作 Element UI 表单：不要按 input type 循环找字段（顺序不固定），应遍历 `.el-form-item` 按 label 文本定位对应 input，再用 `nativeSetter.call` 设值并触发 `input` 事件
 
 ## 工作方式
 
@@ -167,6 +168,7 @@ User ──N:M── Role ──N:M── Menu
 - 禁止编造项目不存在的函数、字段、接口、环境变量；不确定时先读取文件
 - 修改功能仅改动需求指定范围；原有校验、权限、异常逻辑若无要求不得删除
 - 所有错误必须捕获处理并打日志，禁止丢弃 error
+- Service 层捕获 MySQL 唯一索引冲突：`strings.Contains(err.Error(), "Duplicate entry")` 判断后返回友好中文提示，不暴露原始 DB 错误
 - SQL 使用参数绑定，禁止字符串拼接SQL；迁移脚本禁止硬编码自增ID定位种子数据
 - Golang 禁止滥用 interface{}，优先定义明确类型
 - 警惕 N+1 查询，禁止循环内调用数据库或远程接口

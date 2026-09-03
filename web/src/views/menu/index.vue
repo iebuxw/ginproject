@@ -97,6 +97,7 @@ export default {
           // el-table 不设置 data-row-key，靠手柄上的 data-menu-id 标记识别行
           const id = this.getRowMenuId(evt.item)
           this._draggedMenu = id ? this.findMenuById(this.menuList, id) : null
+          this._dragRejected = false
         },
         onMove: (evt) => {
           if (!this._draggedMenu) return false
@@ -104,12 +105,21 @@ export default {
           if (!relatedId) return false
           const relatedMenu = this.findMenuById(this.menuList, relatedId)
           if (!relatedMenu) return false
-          return this._draggedMenu.parent_id === relatedMenu.parent_id
+          const sameLevel = this._draggedMenu.parent_id === relatedMenu.parent_id
+          this._dragRejected = !sameLevel
+          return sameLevel
         },
         onEnd: async (evt) => {
-          if (!this._draggedMenu) return
           const menu = this._draggedMenu
+          const rejected = this._dragRejected
           this._draggedMenu = null
+          this._dragRejected = false
+          if (!menu) return
+          // 未实际换位（原地震荡放回 / 跨级拖拽被拒）不提交排序
+          if (evt.oldIndex === evt.newIndex) {
+            if (rejected) this.$message.warning('只能在同级菜单间拖拽排序')
+            return
+          }
           // 拖拽后 DOM 已重排，按行内标记收集同级菜单（新视觉顺序）
           const siblings = []
           Array.from(evt.from.children).forEach(row => {
@@ -121,6 +131,8 @@ export default {
             }
           })
           const sortData = siblings.map((m, index) => ({ id: m.id, sort: index }))
+          // 视觉顺序与现有 sort 值一致（如拖回原位、落到自身行）时不提交
+          if (siblings.every((m, index) => m.sort === index)) return
           try {
             await sortMenus(sortData)
             await this.fetchData()

@@ -15,7 +15,7 @@
         <el-table-column prop="permission" label="权限标识"></el-table-column>
         <el-table-column label="排序" width="80">
           <template slot-scope="s">
-            <span class="sort-handle" style="cursor:move;font-size:16px">&#9776;</span>
+            <span class="sort-handle" :data-menu-id="s.row.id" style="cursor:move;font-size:16px">&#9776;</span>
             <span style="margin-left:4px">{{ s.row.sort }}</span>
           </template>
         </el-table-column>
@@ -75,9 +75,6 @@ export default {
       sortableInstance: null
     }
   },
-  computed: {
-    flatMenus() { return this.flattenMenus(this.menuList) }
-  },
   created() { this.fetchData() },
   beforeDestroy() {
     if (this.sortableInstance) { this.sortableInstance.destroy(); this.sortableInstance = null }
@@ -97,12 +94,15 @@ export default {
         handle: '.sort-handle',
         animation: 150,
         onStart: (evt) => {
-          // el-table 不设置 data-row-key，通过 flatMenus 索引定位
-          this._draggedMenu = this.flatMenus[evt.oldIndex]
+          // el-table 不设置 data-row-key，靠手柄上的 data-menu-id 标记识别行
+          const id = this.getRowMenuId(evt.item)
+          this._draggedMenu = id ? this.findMenuById(this.menuList, id) : null
         },
         onMove: (evt) => {
           if (!this._draggedMenu) return false
-          const relatedMenu = this.flatMenus[evt.newIndex]
+          const relatedId = this.getRowMenuId(evt.related)
+          if (!relatedId) return false
+          const relatedMenu = this.findMenuById(this.menuList, relatedId)
           if (!relatedMenu) return false
           return this._draggedMenu.parent_id === relatedMenu.parent_id
         },
@@ -110,13 +110,12 @@ export default {
           if (!this._draggedMenu) return
           const menu = this._draggedMenu
           this._draggedMenu = null
-          // 拖拽后 DOM 已重排，收集同级菜单
-          const tbody = evt.from
-          const rows = Array.from(tbody.children).filter(r => r.classList.contains('el-table__row'))
-          const newFlat = this.flattenMenus(this.menuList)
+          // 拖拽后 DOM 已重排，按行内标记收集同级菜单（新视觉顺序）
           const siblings = []
-          rows.forEach((row, i) => {
-            const m = newFlat[i]
+          Array.from(evt.from.children).forEach(row => {
+            const id = this.getRowMenuId(row)
+            if (!id) return
+            const m = this.findMenuById(this.menuList, id)
             if (m && m.parent_id === menu.parent_id) {
               siblings.push(m)
             }
@@ -134,15 +133,9 @@ export default {
         }
       })
     },
-    flattenMenus(menus) {
-      const result = []
-      for (const m of menus) {
-        result.push(m)
-        if (m.children && m.children.length > 0) {
-          result.push(...this.flattenMenus(m.children))
-        }
-      }
-      return result
+    getRowMenuId(row) {
+      const el = row.querySelector('.sort-handle')
+      return el ? parseInt(el.getAttribute('data-menu-id'), 10) : 0
     },
     findMenuById(menus, id) {
       for (const m of menus) {
